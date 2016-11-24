@@ -12,17 +12,17 @@ pub struct Cpu {
     // display: Display
 }
 
-// TODO: Implement keypad & display in SDL2
+// TODO: Write keypad & display implementation in SDL2
 impl Cpu {
     pub fn new() -> Cpu {
         let mut cpu = Cpu {
             opcode: 0,
-            memory: [0; 4096],
-            v: [0; 16],
-            i: 0x200, // start address (except ETI 660)
-            pc: 0x200, // PC reset
-            stack: [0; 16],
-            sp: 0,
+            memory: [0; 4096],  // 0x000 (0) to 0xFFF (4095). 0x000 - 0x1FF for interpreter
+            v: [0; 16],         // Video? 16 bit array
+            i: 0x200,           // Start address
+            pc: 0x200,          // Program Counter (start address is 0x200 on RST)
+            stack: [0; 16],     // Interpreter returns to value when done with subroutine
+            sp: 0,              // Stack pointer. Used to point to topmost level of the Stack
             delay_timer: 0,
             sound_timer: 0,
             // keypad: Keypad,
