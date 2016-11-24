@@ -28,4 +28,5 @@ impl Cpu {
         }
     }
 }
-
+// TODO: Read instructions from memory & execute instructions + read up on opcodes.
+// Run match statement over opcode for stepping?
