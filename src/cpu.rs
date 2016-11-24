@@ -7,7 +7,7 @@ pub struct Cpu {
     stack: [u16; 16],
     sp: usize,
     delay_timer: u8,
-    sound_timer: u8,
+    sound_timer: u8
     // keypad: Keypad,
     // display: Display
 }
