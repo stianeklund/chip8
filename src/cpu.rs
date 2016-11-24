@@ -24,9 +24,7 @@ impl Cpu {
             stack: [0; 16],     // Interpreter returns to value when done with subroutine
             sp: 0,              // Stack pointer. Used to point to topmost level of the Stack
             delay_timer: 0,
-            sound_timer: 0,
-            // keypad: Keypad,
-            // display: Display
+            sound_timer: 0
         };
     }
 }
