@@ -1,7 +1,9 @@
+mod cpu;
+
 use std::env;
 use std::fs;
 use std::io::Read;
-mod cpu;
+use cpu::Cpu;
 
 fn main() {
 
