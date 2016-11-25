@@ -64,19 +64,22 @@ impl Cpu {
         file_buf
     }
 
+    // TODO: Implement tick for sound timer & delay timer
+    // We want to decrement dt & sp by 1 until they're 0.
+
+    // This is big-endian, so we need to shift 8 bytes to the left
+    // then bitwise-or it with the next byte to get the full 16-bit value
     // Emulate cycle & read the next opcode from memory
     pub fn emulate_cycle(&mut self) {
-        // Read two bytes
-        self.opcode = (self.memory[self.pc] as u16) << 8 |
-        (self.memory[self.pc + 1] as u16);
-        println!("{:04x}: {:04x}", self.pc, self.opcode);
+        self.opcode = (self.memory[self.pc] as u16) << 8 | (self.memory[self.pc + 1] as u16);
 
-        let nnn_reg: u16 = (self.opcode & 0x0FFF) as u16;
-        let kk_reg: u8 = (self.opcode & 0x00FF) as u8;
+        let nnn: u16 = (self.opcode & 0x0FFF) as u16;
+        let kk: u8 = (self.opcode & 0x00FF) as u8;
         // Vx & Vy register identifiers.
-        // Bitshift right to get raw value (we want 0x4 instead of 0x40)
-        let x_reg: u8 = (self.opcode & 0x0F00 >> 8) as u8;
-        let y_reg: u8 = (self.opcode & 0x00F0 >> 4) as u8;
-        // TODO: Handle Chip-8 instructions
+        let x: u8 = (self.opcode & 0x0F00 >> 8) as u8; // Bitshift right to get 0x4
+        let y: u8 = (self.opcode & 0x00F0 >> 4) as u8; // Original value is 0x40
+
+        // TODO: Handle 0x0 which should CLR or return from a subroutine
+
     }
 }
