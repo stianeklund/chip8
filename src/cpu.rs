@@ -2,7 +2,6 @@
 use std::{fs, env};
 use std::io::Read;
 use std::path::Path;
-use std::fmt::Debug;
 
 // Load built-in fonts into memory
 const FONT: [u8; 80] = [
