@@ -66,9 +66,17 @@ impl Cpu {
 
     // Emulate cycle & read the next opcode from memory
     pub fn emulate_cycle(&mut self) {
+        // Read two bytes
         self.opcode = (self.memory[self.pc] as u16) << 8 |
         (self.memory[self.pc + 1] as u16);
-        // (self.opcode & [0xF000]);
+        println!("{:04x}: {:04x}", self.pc, self.opcode);
+
+        let nnn_reg: u16 = (self.opcode & 0x0FFF) as u16;
+        let kk_reg: u8 = (self.opcode & 0x00FF) as u8;
+        // Vx & Vy register identifiers.
+        // Bitshift right to get raw value (we want 0x4 instead of 0x40)
+        let x_reg: u8 = (self.opcode & 0x0F00 >> 8) as u8;
+        let y_reg: u8 = (self.opcode & 0x00F0 >> 4) as u8;
+        // TODO: Handle Chip-8 instructions
     }
 }
-
