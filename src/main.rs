@@ -10,11 +10,3 @@ fn main() {
     let rom = Cpu::read_rom(file_name);
     let mut cpu = Cpu::new();
 }
-
-// Load ROM into memory at 0x200
-//fn read_rom<P: AsRef<Path>>(path: P) -> Vec<u8> {
-//    let mut file = fs::File::open(path).unwrap();
-//   let mut file_buf = Vec::new();
-//    file.read_to_end(&mut file_buf).expect("Reading rom failed");
-    // Return file_buf
-//    file_buf
