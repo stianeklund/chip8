@@ -1,2 +1,2 @@
 # chip8
-CHIP-8 emulator in Rust
+A CHIP-8 interpreter writtenin Rust
