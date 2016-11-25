@@ -65,7 +65,7 @@ impl Cpu {
     }
 
     // Emulate cycle & read the next opcode from memory
-    pub fn emulate_cylce(&mut self) {
+    pub fn emulate_cycle(&mut self) {
         self.opcode = (self.memory[self.pc] as u16) << 8 |
         (self.memory[self.pc + 1] as u16);
         // (self.opcode & [0xF000]);
