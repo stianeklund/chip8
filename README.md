@@ -7,4 +7,5 @@ Sources used:
 
 * https://en.wikipedia.org/wiki/CHIP-8
 * http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
+* http://www.multigesture.net/wp-content/uploads/mirror/goldroad/chip8.shtml
 * http://www.multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/
