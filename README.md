@@ -1,5 +1,5 @@
 # chip8
-### CHIP-8 interpreter writtenin Rust
+### CHIP-8 interpreter written in Rust
 
 ---
 
