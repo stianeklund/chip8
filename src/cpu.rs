@@ -18,7 +18,7 @@ impl Cpu {
         Cpu {
             opcode: 0,
             memory: [0; 4096],  // 0x000 (0) to 0xFFF (4095). 0x000 - 0x1FF for interpreter
-            v: [0; 16],         // 8-bit general purpose register, ()V0 - VE*).
+            v: [0; 16],         // 8-bit general purpose register, (V0 - VE*).
             i: 0x200,           // Index register (start address)
             pc: 0x200,          // Program Counter (start address is 0x200 on RST)
             stack: [0; 16],     // Interpreter returns to value when done with subroutine
