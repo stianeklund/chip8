@@ -33,8 +33,8 @@ pub struct Cpu {
     pc: usize,
     stack: [u16; 16],
     sp: usize,
-    dt: u8,
-    st: u8
+    delay_timer: u8,
+    sound_timer: u8
 }
 
 impl Cpu {
@@ -47,8 +47,8 @@ impl Cpu {
             pc: 0x200,               // Program Counter. Jump to 0x200 on RST
             stack: [0; 16],          // Interpreter returns to value when done with subroutine
             sp: 0,                   // Stack pointer. Used to point to topmost level of the Stack
-            dt: 0,                   // 8-bit Delay Timer
-            st: 0,                   // 8-bit Sound timer
+            delay_timer: 0,          // 8-bit Delay Timer
+            sound_timer: 0,          // 8-bit Sound timer
                                      // * VF is a special register used to store overflow bit
         };
         cpu
