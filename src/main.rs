@@ -3,6 +3,7 @@ use std::{env, fs};
 use std::io::Read;
 use std::path::Path;
 use cpu::Cpu;
+
 mod cpu;
 
 fn main() {
@@ -19,4 +20,5 @@ fn main() {
     let mut cpu = cpu::Cpu::new();
     read_rom(file_name);
     cpu.step();
+    // cpu.update_timers();
 }

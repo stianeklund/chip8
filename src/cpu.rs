@@ -67,6 +67,7 @@ impl Cpu {
             keypad: [0; 16]
         }
     }
+
     // TODO: Implement delta time to keep track of timers so that they update every 60s.
     // Update delay & sound timers (decrement delay & sound until they're 0)
     pub fn update_timers(&mut self) {
