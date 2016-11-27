@@ -3,6 +3,9 @@ use std::{fs, env};
 use std::io::Read;
 use std::path::Path;
 
+// TODO: Implement fmt::Debug for Cpu
+const DEBUG: bool = true;
+
 // Load built-in fonts into memory
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -27,35 +30,45 @@ const FONT: [u8; 80] = [
 // TODO: Implement input & display handling with SDL2
 pub struct Cpu {
     opcode: u16,
-    memory: [u8; 4096],
-    v: [u8; 16],
-    i: isize,
-    pc: usize,
-    stack: [u16; 16],
-    sp: usize,
-    delay_timer: u8,
-    sound_timer: u8
+    memory: [u8; 4096],     // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
+    v: [u8; 16],            // 8-bit general purpose register, (V0 - VE*).
+    i: isize,               // Index register (start at 0x200)
+    pc: usize,              // Program Counter. Jump to 0x200 on RST
+    stack: [u16; 16],       // Interpreter returns to value when done with subroutine
+    sp: usize,              // Stack pointer. Used to point to topmost level of the Stack
+    delay_timer: u8,        // 8-bit Delay Timer
+    sound_timer: u8,        // 8-bit Sound Timer
+    draw_flag: bool,        // 0x00E0 CLS
+    display: [u8; 64 * 32], // Display is an array of 64x32 pixels
+    keypad: [u16; 16]       // Keypad is HEX based(0x0-0xF)
+    // * VF is a special register used to store overflow bit
 }
 
 impl Cpu {
     pub fn new() -> Cpu {
-        let mut cpu = Cpu 
+        let mut memory: [u8; 4096] = [0; 4096];
+
+        for i in 0..80 {
+            memory[i] = FONT[i];
+        }
+
+        Cpu {
             opcode: 0,
-            memory: [0; 4096],       // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
-            v: [0; 16],              // 8-bit general purpose register, (V0 - VE*).
-            i: 0x200,                // Index register (start at 0x200)
-            pc: 0x200,               // Program Counter. Jump to 0x200 on RST
-            stack: [0; 16],          // Interpreter returns to value when done with subroutine
-            sp: 0,                   // Stack pointer. Used to point to topmost level of the Stack
-            delay_timer: 0,          // 8-bit Delay Timer
-            sound_timer: 0,          // 8-bit Sound timer
-                                     // * VF is a special register used to store overflow bit
-        };
-        cpu
+            memory: memory,
+            v: [0; 16],
+            i: 0,
+            pc: 0x200,
+            stack: [0; 16],
+            sp: 0,
+            delay_timer: 0,
+            sound_timer: 0,
+            draw_flag: true,
+            display: [0; 64 * 32],
+            keypad: [0; 16]
+        }
     }
 
     // TODO: Handle case where rom is larger than memory space
-    // Load rom into memory at 0x200
     pub fn read_rom<P: AsRef<Path>>(path: P) -> Vec<u8> {
         let mut file = fs::File::open(path).unwrap();
         let mut file_buf = Vec::new();
@@ -64,22 +77,61 @@ impl Cpu {
         file_buf
     }
 
-    // TODO: Implement tick for sound timer & delay timer
-    // We want to decrement dt & sp by 1 until they're 0.
+    // TODO: Implement delta time to keep track of timers so that they update every 60s.
+    // Update delay & sound timers (decrement delay & sound until they're 0)
+    pub fn update_timers(&mut self) {
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+        if self.sound_timer > 0 {
+            self.sound_timer -= 1;
+        }
+        if self.sound_timer > 0 {
+            println!("Beep!");
+        }
+    }
 
     // This is big-endian, so we need to shift 8 bytes to the left
     // then bitwise-or it with the next byte to get the full 16-bit value
-    // Emulate cycle & read the next opcode from memory
-    pub fn emulate_cycle(&mut self) {
+
+    // Read in 2 bytes
+    pub fn step(&mut self) {
         self.opcode = (self.memory[self.pc] as u16) << 8 | (self.memory[self.pc + 1] as u16);
 
-        let nnn: u16 = (self.opcode & 0x0FFF) as u16;
-        let kk: u8 = (self.opcode & 0x00FF) as u8;
-        // Vx & Vy register identifiers.
+        // All instructions are 2 bytes long & are stored most-significant-byte first
+        let n: u16 = (self.opcode & 0x000F) as u16;   // nibble 4 bit value
+        let nnn: u16 = (self.opcode & 0x0FFF) as u16; // addr 12-bit value
+        let kk: u8 = (self.opcode & 0x00FF) as u8;    // byte 8-bit value
+
+        // Decode Vx & Vy register identifiers.
         let x: u8 = (self.opcode & 0x0F00 >> 8) as u8; // Bitshift right to get 0x4
         let y: u8 = (self.opcode & 0x00F0 >> 4) as u8; // Original value is 0x40
 
-        // TODO: Handle 0x0 which should CLR or return from a subroutine
+        println!("Executing opcode 0x{:04x}", self.opcode);
+        //println!("Executing opcode: 0x{:X}", self.opcode);
 
+        // Execute instructions, might need to use 0x0000
+        match (self.opcode & 0xF00) {
+            0x0000 => match kk {
+                // 00E0 CLS
+                0xE0 => {
+                    // Null out the array (Set all pixels to 0)
+                    self.display = [0; 64 * 32];
+                    self.draw_flag = true;
+                    self.pc += 2; // increment PC by 2
+                },
+                // 0xEE (00EE) RET Return from a subroutine
+                // The interpreter should set the pc to the address at the top
+                // of the stack then subtract 1 from the SP
+                0xEE => {
+                    self.sp -= 1;
+                    // self.pc = self.stack[(self.sp as usize)];
+                    self.pc = self.stack[self.sp] as usize;
+
+                },
+                _ => panic!("Panicked at: 0x{:04x}", self.opcode),
+            },
+            _ => panic!("Panicked at: 0x{:04x}", self.opcode),
+        }
     }
 }
