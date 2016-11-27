@@ -67,16 +67,6 @@ impl Cpu {
             keypad: [0; 16]
         }
     }
-
-    // TODO: Handle case where rom is larger than memory space
-    pub fn read_rom<P: AsRef<Path>>(path: P) -> Vec<u8> {
-        let mut file = fs::File::open(path).unwrap();
-        let mut file_buf = Vec::new();
-        file.read_to_end(&mut file_buf).expect("Reading rom failed");
-        // Return file_buf
-        file_buf
-    }
-
     // TODO: Implement delta time to keep track of timers so that they update every 60s.
     // Update delay & sound timers (decrement delay & sound until they're 0)
     pub fn update_timers(&mut self) {
