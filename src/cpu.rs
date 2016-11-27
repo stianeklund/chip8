@@ -29,10 +29,10 @@ pub struct Cpu {
     opcode: u16,
     memory: [u8; 4096],     // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
     v: [u8; 16],            // 8-bit general purpose register, (V0 - VE*).
-    i: u16,               // Index register (start at 0x200)
+    i: u16,                 // Index register (start at 0x200)
     pc: u16,                // Program Counter. Jump to 0x200 on RST
     stack: [u16; 16],       // Interpreter returns to value when done with subroutine
-    sp: u16,                // Stack pointer. Used to point to topmost level of the Stack
+    sp: u8,                // Stack pointer. Used to point to topmost level of the Stack
     delay_timer: u8,        // 8-bit Delay Timer
     sound_timer: u8,        // 8-bit Sound Timer
     draw_flag: bool,        // 0x00E0 CLS
@@ -69,7 +69,7 @@ impl Cpu {
         let path = Path::new(file);
         let mut file = match File::open(&path) {
             Ok(file) => file,
-            Err(e) => panic!("Unable to open file"),
+            Err(_) => panic!("Unable to open file, "),
         };
 
         let mut buf = Vec::new();
@@ -102,17 +102,20 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
 
+        println!("PC is: {}", self.pc);
         // println!("Executing opcode 0x{:04x}", self.opcode);
 
         // TODO: Move opcodes into separate method
         match self.opcode & 0xF000 {
             0x0000 => match self.opcode & 0x000F {
+
                 // 00E0 CLS
                 0x00000 => {
                     // Null out the array (Set all pixels to 0)
                     self.display = [0; 64 * 32];
                     self.draw_flag = true;
                     self.pc += 2; // increment PC by 2
+                    println!("PC is: {}", self.pc);
                 },
                 // 00EE RET Return from a subroutine
                 // The interpreter should set the pc to the address at the top
@@ -127,24 +130,28 @@ impl Cpu {
             // 1NNN Jump to location
             0x1000 => {
                 self.pc = nnn;
+                println!("PC is: {}", self.pc);
             },
             // 2NNN Call subroutine at nnn
             0x2000 => {
                 self.stack[self.sp as usize] = self.pc;
                 self.sp += 1;
                 self.pc = nnn;
+                println!("PC is: {}", self.pc);
             },
             // 3xkk Skip next instruction if Vx = kk
             0x3000 => {
                 if self.v[x] == kk as u8 {
                     self.pc +=2;
                 }
+                println!("PC is: {}", self.pc);
             },
             // 4xkk Skip next instruction if Vx != kk
             0x4000 => {
                 if self.v[x] != kk as u8 {
                     self.pc += 2;
                 }
+                println!("PC is: {}", self.pc);
             },
             // 5xy0 Skip next instruction if Vx = Vy
             0x5000 => {
