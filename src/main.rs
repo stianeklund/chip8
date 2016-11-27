@@ -2,7 +2,7 @@
 use std::env;
 use cpu::Cpu;
 mod cpu;
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 fn main() {
     // Workaround
