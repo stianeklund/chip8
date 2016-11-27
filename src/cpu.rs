@@ -155,7 +155,7 @@ impl Cpu {
                     self.pc += 2;
                     println!("At 4XKK. PC is: {:X}", self.pc);
                 }
-                println!("Outside of 4XKK if block. PC is: {}", self.pc);
+                println!("Outside of 4XKK if block. PC is: {:X}", self.pc);
             },
             // 5XY0 Skip next instruction if Vx = Vy
             0x5000 => {
@@ -169,12 +169,14 @@ impl Cpu {
                 self.v[x] == kk as u8; // Isn't this supposed to be u16?
                 println!("At 6XKK. PC is: {:X}", self.pc);
                 println!("Vx is: {}", self.v[x]);
+                self.pc += 2; // Add for test
             },
             // 7XKK Add value kk to Vx
             0x7000 => {
                 self.v[x] += nn as u8;
                 self.pc += 2;
                 println!("At 7XKK. PC is: {:X}", self.pc);
+                println!("Vx is: {}", self.v[x]);
             },
             // 8XY0 Set Vx = Vy
             0x8000 =>  match self.opcode & 0x000F {
@@ -182,38 +184,49 @@ impl Cpu {
                     self.v[x] = self.v[y];
                     self.pc += 2;
                     println!("At 8XY0. PC is: {:X}", self.pc);
+                    println!("Vx is: {}", self.v[x]);
                 },
                 // 8XY1 Set Vx to Vx & Vy
                 0x0001 => {
                     self.v[x] = self.v[x] & self.v[y];
                     self.pc += 2;
                     println!("At 8XY1. PC is: {:X}", self.pc);
+                    println!("Vx is: {}", self.v[x]);
                 },
                 // 8XY3 Set Vx to XOR Vy
                 0x0003 => {
                     self.v[x] = self.v[x] ^ self.v[y];
                     self.pc += 2;
                     println!("At 8XY3. PC is: {:X}", self.pc);
+                    println!("Vx is: {}", self.v[x]);
                 },
                 // 8XY4 Set Vx = Vx + Vy, set VF = carry
                 0x0004 => {
                     if self.v[y] > (0xFF - self.v[x]) {
                         self.v[0xF]  = 1; // Set carry
+                        println!("At 8XY4 Setting carry. PC is: {:X}", self.pc);
+                        println!("Vx is: {}", self.v[x]);
+
                     } else {
                         self.v[0xF] = 0;
                     }
                     self.v[x] += self.v[y];
                     self.pc += 2;
                     println!("At 8XY4. PC is: {:X}", self.pc);
+                    println!("Vx is: {}", self.v[x]);
                 },
                 // 8XY5 Set Vx = Vx - Vy, set VF = NOT borrow
                 0x0005 => {
                     if self.v[x] > self.v[y] {
                         self.v[0xF] = 1; // VF set to not borrow
+                        println!("At 8XY5, 0xF 1. PC is: {:X}", self.pc);
+                        println!("Vx is: {}", self.v[x]);
+
                     } else {
                         self.v[0xF] = 0;
+                        println!("At 8XY4. PC is: {:X}", self.pc);
+                        println!("Vx is: {}", self.v[x]);
                     }
-                    println!("At 8XY5. PC is: {:X}", self.pc);
                 },
                 // 8XY6 Vx = Vx Shift right by 1 If the least-significant bit of
                 // Vx is 1 then VF is set to 1, otherwise 0. Then Vx is divided by 2
@@ -257,17 +270,20 @@ impl Cpu {
                 0xA000 => {
                     self.i = nnn as u16;
                     println!("At ANNN. PC is: {:X}", self.pc);
+                    println!("Vx is: {}", self.v[x]);
                 },
             // BNNN Jump to address NNN + V0
             0xB000 => {
                 self.pc = nnn + self.v[0x0] as u16;
                 println!("At BNNN. PC is: {:X}", self.pc);
+                println!("Vx is: {}", self.v[x]);
             },
             // CXNN Set Vx to a random number masked by NN
             0xC000 => {
                 // TODO: Implement rng (rand::thread_rng)
                 self.pc += 2;
                 println!("At CXNN. PC is: {:X}", self.pc);
+                println!("Vx is: {}", self.v[x]);
             },
             // DXYN Draw to display
             0xD000 => {
@@ -281,8 +297,10 @@ impl Cpu {
                     if self.keypad[self.v[x] as usize] as usize != 0 {
                         self.pc += 2;
                         println!("At EX9E. PC is: {:X}", self.pc);
+                        println!("Vx is: {}", self.v[x]);
                     }
                     println!("Outside if block. PC is: {:X}", self.pc);
+                    println!("Vx is: {}", self.v[x]);
                 },
                 _ => println!("Unkown opcode [0xE000]: {:04x}", self.opcode),
             },
