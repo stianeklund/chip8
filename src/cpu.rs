@@ -214,10 +214,44 @@ impl Cpu {
                 0x000E => {
                     self.v[0xF] = self.v[x] >> 7; // TODO: Check if this is correct
                     self.v[x] <<= 1;
-                }
-				        _ => println!("Unkown opcode at [0x8000]: {:02X}", self.opcode),
+                },
+                _ => panic!("Unknown opcode 0x8000, {:04x}, self.opcode"),
             },
-            _ => println!("Unknown upcode: {:04x}", self.opcode),
+            // 9xy0 Skip next instruction if Vx != Vy
+                0x9000 => {
+                    if self.v[x] != self.v[y] {
+                        self.pc += 2;
+                    }
+                },
+                // ANNN Set I to the address of NNN
+                0xA000 => {
+                    self.i = nnn as usize;
+                },
+            // BNNN Jump to address NNN + V0
+            0xB000 => {
+                self.pc = nnn + self.v[0x0] as u16;
+            },
+            // CXNN Set Vx to a random number masked by NN
+            0xC000 => {
+                // TODO: Implement rng (rand::thread_rng)
+                self.pc += 2;
+            },
+            // DXYN Draw to display
+            0xD000 => {
+                // TODO: Implement SDL2
+                // READ: http://devernay.free.fr/hacks/chip8/2.4
+                println!("Attempted to draw to display");
+            },
+            0xE000 => match self.opcode & 0x00FF {
+                // EX9E Skip next instruction if key stores in Vx is pressed
+                0x009E => {
+                    if self.keypad[self.v[x] as usize] as usize != 0 {
+                        self.pc += 2;
+                    }
+                },
+                _ => println!("Unkown opcode [0xE000]: {:04x}", self.opcode),
+            },
+            _ => println!("Unknown opcode {:04x}", self.opcode),
         }
     }
 }
