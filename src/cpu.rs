@@ -1,10 +1,7 @@
 // src/cpu.rs
-use std::{fs, env};
-use std::io::Read;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
-
-// TODO: Implement fmt::Debug for Cpu
-const DEBUG: bool = true;
 
 // Load built-in fonts into memory
 const FONT: [u8; 80] = [
@@ -32,7 +29,7 @@ pub struct Cpu {
     opcode: u16,
     memory: [u8; 4096],     // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
     v: [u8; 16],            // 8-bit general purpose register, (V0 - VE*).
-    i: usize,               // Index register (start at 0x200)
+    i: u16,               // Index register (start at 0x200)
     pc: u16,                // Program Counter. Jump to 0x200 on RST
     stack: [u16; 16],       // Interpreter returns to value when done with subroutine
     sp: u16,                // Stack pointer. Used to point to topmost level of the Stack
@@ -68,42 +65,46 @@ impl Cpu {
         }
     }
 
-    // TODO: Implement delta time to keep track of timers so that they update every 60s.
-    // Update delay & sound timers (decrement delay & sound until they're 0)
-    pub fn update_timers(&mut self) {
-        if self.delay_timer > 0 {
-            self.delay_timer -= 1;
-        }
-        if self.sound_timer > 0 {
-            self.sound_timer -= 1;
-        }
-        if self.sound_timer > 0 {
-            println!("Beep!");
+    pub fn load_bin(&mut self, file: &str) {
+        let path = Path::new(file);
+        let mut file = match File::open(&path) {
+            Ok(file) => file,
+            Err(e) => panic!("Unable to open file"),
+        };
+
+        let mut buf = Vec::new();
+        match file.read_to_end(&mut buf) {
+            Ok(buf) => buf,
+            Err(e) => panic!("Oh no: {}", e),
+        };
+        let buf_size = buf.len();
+        for i in 0..buf_size {
+            self.memory[i + 512] = buf[i];
         }
     }
 
     // This is big-endian, so we need to shift 8 bytes to the left
     // then bitwise-or it with the next byte to get the full 16-bit value
-
+    //
     // Read in 2 bytes
     pub fn step(&mut self) {
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 |
         (self.memory[self.pc as usize + 1] as u16);
+
         // All instructions are 2 bytes long & are stored most-significant-byte first
         // Decode Vx & Vy register identifiers.
         let x = ((self.opcode & 0x0F00) as usize) >> 8; // Bitshift right to get 0x4
         let y = ((self.opcode & 0x00F0) as usize) >> 4; // Original value is 0x40
-        let n = self.opcode & 0x000F as u16;   // nibble 4 bit value
-        let nn = self.opcode & 0x00FF;    // u16
-        let nnn = self.opcode & 0x0FFF;  // addr 12-bit value
-        let kk = self.opcode & 0x00FF;  // u8, byte 8-bit value
+        // let n = self.opcode & 0x000F as u16;         // nibble 4 bit value
+
+        let nn = self.opcode & 0x00FF;                  // u16
+        let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
+        let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
 
-        println!("Executing opcode 0x{:04x}", self.opcode);
-        // println!("Executing opcode: 0x{:X}", self.opcode);
+        // println!("Executing opcode 0x{:04x}", self.opcode);
 
-        // TODO: Move opcode into separate method
-        // Execute instructions
+        // TODO: Move opcodes into separate method
         match self.opcode & 0xF000 {
             0x0000 => match self.opcode & 0x000F {
                 // 00E0 CLS
@@ -225,7 +226,7 @@ impl Cpu {
                 },
                 // ANNN Set I to the address of NNN
                 0xA000 => {
-                    self.i = nnn as usize;
+                    self.i = nnn as u16;
                 },
             // BNNN Jump to address NNN + V0
             0xB000 => {
@@ -254,6 +255,13 @@ impl Cpu {
             _ => println!("Unknown opcode {:04x}", self.opcode),
         }
     }
+    pub fn update_timers(&mut self) {
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+
+        }
+        if self.sound_timer > 0 {
+            self.sound_timer -= 1;
+        }
+    }
 }
-
-
