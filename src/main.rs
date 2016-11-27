@@ -1,24 +1,22 @@
 // src/main.rs
-use std::{env, fs};
-use std::io::Read;
-use std::path::Path;
+use std::env;
 use cpu::Cpu;
-
 mod cpu;
 
 fn main() {
-    let file_name = env::args().nth(1).expect("Missing input file");
-    // TODO: Handle case where rom is larger than memory space
-    pub fn read_rom<P: AsRef<Path>>(path: P) -> Vec<u8> {
-        let mut file = fs::File::open(path).unwrap();
-        let mut file_buf = Vec::new();
-        file.read_to_end(&mut file_buf).expect("Reading rom failed");
-        // Return file_buf
-        file_buf
-    }
+    // Workaround
+    let args: Vec<String> = env::args().collect();
+	  if args.len() != 2 {
+		    println!("[PATH_TO_ROM]");
+		    return;
+	  }
+	  let bin = &args[1];
 
-    let mut cpu = cpu::Cpu::new();
-    read_rom(file_name);
+    let mut cpu = Cpu::new();
+    cpu.load_bin(bin);
+
+    loop {
     cpu.step();
-    // cpu.update_timers();
+    cpu.update_timers();
+    }
 }
