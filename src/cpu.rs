@@ -117,7 +117,7 @@ impl<'a> Cpu<'a> {
                 // 00E0 CLS
                 0x00000 => {
                     // Null out the array (Set all pixels to 0)
-                    self.display = [0; 64 * 32];
+                    self.display = self.display.clear();
                     self.draw_flag = true;
                     self.pc += 2; // increment PC by 2
                     println!("At CLS. PC is: {:X}", self.pc);
