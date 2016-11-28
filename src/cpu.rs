@@ -2,6 +2,11 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use sdl2::Sdl;
+use sdl2::rect::Rect;
+use rand::Rng;
+
+use display::Display;
 
 // Load built-in fonts into memory
 const FONT: [u8; 80] = [
@@ -25,24 +30,24 @@ const FONT: [u8; 80] = [
 ];
 
 // TODO: Implement input & display handling with SDL2
-pub struct Cpu {
+pub struct Cpu<'a> {
     opcode: u16,
     memory: [u8; 4096],     // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
     v: [u8; 16],            // 8-bit general purpose register, (V0 - VE*).
     i: u16,                 // Index register (start at 0x200)
     pc: u16,                // Program Counter. Jump to 0x200 on RST
     stack: [u16; 16],       // Interpreter returns to value when done with subroutine
-    sp: u8,                // Stack pointer. Used to point to topmost level of the Stack
+    sp: u8,                 // Stack pointer. Used to point to topmost level of the Stack
     delay_timer: u8,        // 8-bit Delay Timer
     sound_timer: u8,        // 8-bit Sound Timer
     draw_flag: bool,        // 0x00E0 CLS
-    display: [u8; 64 * 32], // Display is an array of 64x32 pixels
+    display: Display<'a>,   // Display is an array of 64x32 pixels
     keypad: [u16; 16]       // Keypad is HEX based(0x0-0xF)
     // * VF is a special register used to store overflow bit
 }
 
-impl Cpu {
-    pub fn new() -> Cpu {
+impl<'a> Cpu<'a> {
+    pub fn new() -> Cpu<'a> {
         let mut memory: [u8; 4096] = [0; 4096];
 
         for i in 0..80 {
@@ -60,7 +65,7 @@ impl Cpu {
             delay_timer: 0,
             sound_timer: 0,
             draw_flag: true,
-            display: [0; 64 * 32],
+            display: Display::new(sdl),
             keypad: [0; 16]
         }
     }
