@@ -2,11 +2,6 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use sdl2::Sdl;
-use sdl2::rect::Rect;
-use rand::Rng;
-
-use display::Display;
 
 // Load built-in fonts into memory
 const FONT: [u8; 80] = [
@@ -30,7 +25,7 @@ const FONT: [u8; 80] = [
 ];
 
 // TODO: Implement input & display handling with SDL2
-pub struct Cpu<'a> {
+pub struct Cpu {
     opcode: u16,
     memory: [u8; 4096],     // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
     v: [u8; 16],            // 8-bit general purpose register, (V0 - VE*).
@@ -40,14 +35,14 @@ pub struct Cpu<'a> {
     sp: u8,                 // Stack pointer. Used to point to topmost level of the Stack
     delay_timer: u8,        // 8-bit Delay Timer
     sound_timer: u8,        // 8-bit Sound Timer
-    draw_flag: bool,        // 0x00E0 CLS
-    display: Display<'a>,   // Display is an array of 64x32 pixels
+    pub draw_flag: bool,        // 0x00E0 CLS
+    pub display: [u8; 64 * 32], // Display is an array of 64x32 pixels
     keypad: [u16; 16]       // Keypad is HEX based(0x0-0xF)
     // * VF is a special register used to store overflow bit
 }
 
-impl<'a> Cpu<'a> {
-    pub fn new() -> Cpu<'a> {
+impl Cpu {
+    pub fn new() -> Cpu {
         let mut memory: [u8; 4096] = [0; 4096];
 
         for i in 0..80 {
@@ -65,7 +60,7 @@ impl<'a> Cpu<'a> {
             delay_timer: 0,
             sound_timer: 0,
             draw_flag: true,
-            display: Display::new(sdl),
+            display: [0; 64 * 32],
             keypad: [0; 16]
         }
     }
@@ -117,7 +112,10 @@ impl<'a> Cpu<'a> {
                 // 00E0 CLS
                 0x00000 => {
                     // Null out the array (Set all pixels to 0)
-                    self.display = self.display.clear();
+                    for i in 0..2048 {// amount of total pixels
+                        self.display[i] = 0;
+                    }
+                    // self.display = [0; 64 * 32];
                     self.draw_flag = true;
                     self.pc += 2; // increment PC by 2
                     println!("At CLS. PC is: {:X}", self.pc);
@@ -160,6 +158,7 @@ impl<'a> Cpu<'a> {
                     self.pc += 2;
                     println!("At 4XKK. PC is: {:X}", self.pc);
                 }
+                self.pc +=2;
                 println!("Outside of 4XKK if block. PC is: {:X}", self.pc);
             },
             // 5XY0 Skip next instruction if Vx = Vy
@@ -168,6 +167,7 @@ impl<'a> Cpu<'a> {
                     self.pc += 2;
                     println!("At 5XY0. PC is: {:X}", self.pc);
                 }
+                self.pc += 2;
             },
             // 6XKK Set Vx = kk. Put value of kk in to Vx register
             0x6000 => {
@@ -276,6 +276,7 @@ impl<'a> Cpu<'a> {
                     self.i = nnn as u16;
                     println!("At ANNN. PC is: {:X}", self.pc);
                     println!("Vx is: {}", self.v[x]);
+                    self.pc += 2;
                 },
             // BNNN Jump to address NNN + V0
             0xB000 => {
@@ -304,6 +305,7 @@ impl<'a> Cpu<'a> {
                         println!("At EX9E. PC is: {:X}", self.pc);
                         println!("Vx is: {}", self.v[x]);
                     }
+                    self.pc += 2;
                     println!("Outside if block. PC is: {:X}", self.pc);
                     println!("Vx is: {}", self.v[x]);
                 },
