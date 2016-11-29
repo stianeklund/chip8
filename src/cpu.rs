@@ -2,6 +2,8 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use rand;
+use rand::Rng;
 
 // Load built-in fonts into memory
 const FONT: [u8; 80] = [
@@ -102,8 +104,10 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
 
-        println!("PC is: {:X}", self.pc);
-        // println!("Executing opcode 0x{:04x}", self.opcode);
+        // println!("PC is: {:X}", self.pc);
+        println!("PC: {:#X}  |  Opcode: {:#X}  | Index Register: {:#X}",
+                 self.pc, self.opcode, self.i);
+        // println!("Executing opcode 0x{:X}", self.opcode);
 
         // TODO: Move opcodes into separate method
         match self.opcode & 0xF000 {
@@ -149,8 +153,7 @@ impl Cpu {
                     self.pc +=2;
                     println!("At 3XKK. PC is: {:X}", self.pc);
                 }
-
-                println!("Outside 3XKK if block. PC is: {:X}", self.pc);
+                self.pc += 2;
             },
             // 4XKK Skip next instruction if Vx != kk
             0x4000 => {
@@ -270,6 +273,7 @@ impl Cpu {
                         println!("At 9XY0. PC is: {:X}", self.pc);
                         println!("Vx is: {}", self.v[x]);
                     }
+                    self.pc += 2;
                 },
                 // ANNN Set I to the address of NNN
                 0xA000 => {
@@ -286,7 +290,10 @@ impl Cpu {
             },
             // CXNN Set Vx to a random number masked by NN
             0xC000 => {
-                // TODO: Implement rng (rand::thread_rng)
+                let mut rng = rand::thread_rng();
+                let random_number: u8 = rng.gen::<u8>();
+                self.v[x] = random_number as u8 & nn as u8;
+
                 self.pc += 2;
                 println!("At CXNN. PC is: {:X}", self.pc);
                 println!("Vx is: {}", self.v[x]);
@@ -295,7 +302,8 @@ impl Cpu {
             0xD000 => {
                 // TODO: Implement SDL2
                 // READ: http://devernay.free.fr/hacks/chip8/2.4
-                println!("Attempted to draw to display");
+                println!("Draw to display");
+                self.pc += 2;
             },
             0xE000 => match self.opcode & 0x00FF {
                 // EX9E Skip next instruction if key stores in Vx is pressed
