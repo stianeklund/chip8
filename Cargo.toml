@@ -7,3 +7,4 @@ authors = ["Stian Eklund <stian.eklund@gmail.com>"]
 sdl2 = "0.24"
 sdl2_image = "0.24"
 sdl2_ttf = "0.24"
+rand = "*"

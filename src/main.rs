@@ -1,12 +1,12 @@
 // src/main.rs
 extern crate sdl2;
 extern crate sdl2_image;
+extern crate rand;
 
 use std::env;
 mod cpu;
 mod display;
 use display::Display;
-
 const DEBUG: bool = false;
 
 fn main() {
