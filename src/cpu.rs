@@ -186,14 +186,6 @@ impl Cpu {
                 println!("At 7XKK. PC is: {:X}", self.pc);
                 println!("Vx is: {}", self.v[x]);
             },
-<<<<<<< HEAD
-=======
-            // TODO: Remove this isn't a valid opcode
-            0x7004 => {
-                println!("At opcode 0x7004. Address: 0x20E (add v0, 0x4)");
-                self.pc += 2;
-            },
->>>>>>> origin/HEAD
 
             // 8XY0 Set Vx = Vy
             0x8000 =>  match self.opcode & 0x000F {
