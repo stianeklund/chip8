@@ -34,7 +34,7 @@ pub struct Cpu {
     i: u16,                 // Index register (start at 0x200)
     pc: u16,                // Program Counter. Jump to 0x200 on RST
     stack: [u16; 16],       // Interpreter returns to value when done with subroutine
-    sp: u8,                 // Stack pointer. Used to point to topmost level of the Stack
+    sp: u16,                // Stack pointer. Used to point to topmost level of the Stack
     delay_timer: u8,        // 8-bit Delay Timer
     sound_timer: u8,        // 8-bit Sound Timer
     pub draw_flag: bool,        // 0x00E0 CLS
@@ -124,17 +124,17 @@ impl Cpu {
                     self.pc += 2; // increment PC by 2
                     println!("At CLS. PC is: {:X}", self.pc);
                 },
-                // 00EE RET Return from a subroutine
-                // The interpreter should set the pc to the address at the top
-                // of the stack then subtract 1 from the SP
+
+                // Set pc to address at the top of the stack then subtract 1 from SP
                 0x000E => {
                     self.sp -= 1;
                     self.pc = self.stack[(self.sp as usize)];
                     self.pc += 2;
                     println!("At RET. PC is: {:X}", self.pc);
                 },
-                _ => println!("Unknown upcode: {:04X}", self.opcode),
+                _ => println!("Unknown upcode: {:X}", self.opcode),
             },
+
             // 1NNN Jump to location
             0x1000 => {
                 self.pc = nnn;
@@ -186,6 +186,7 @@ impl Cpu {
                 println!("At 7XKK. PC is: {:X}", self.pc);
                 println!("Vx is: {}", self.v[x]);
             },
+            // TODO: Remove this isn't a valid opcode
             0x7004 => {
                 println!("At opcode 0x7004. Address: 0x20E (add v0, 0x4)");
                 self.pc += 2;
@@ -271,6 +272,8 @@ impl Cpu {
                 },
                 _ => panic!("Unknown opcode [0x8000], {:X}, self.opcode"),
             },
+
+
             // 9XY0 Skip next instruction if Vx != Vy
                 0x9000 => {
                     if self.v[x] != self.v[y] {
@@ -308,31 +311,116 @@ impl Cpu {
                 // TODO: Implement SDL2
                 // READ: http://devernay.free.fr/hacks/chip8/2.4
                 println!("Draw to display");
+                self.draw_flag = true;
                 self.pc += 2;
             },
+
             0xE000 => match self.opcode & 0x00FF {
-                // EX9E Skip next instruction if key stores in Vx is pressed
+                // EX9E Skip next instruction if key stored in Vx is pressed
+                // Usually the next instruction is JMP to skip to a code block
                 0x009E => {
-                    if self.keypad[self.v[x] as usize] as usize != 0 {
+                    if self.keypad[self.v[x] as usize] != 0 {
                         self.pc += 4;
                         println!("At EX9E. PC is: {:X}", self.pc);
                         println!("Vx is: {}", self.v[x]);
+                    } else {
+                        self.pc += 2;
+                        println!("Outside if block. PC is: {:X}", self.pc);
+                        println!("Vx is: {}", self.v[x]);
                     }
-                    self.pc += 2;
-                    println!("Outside if block. PC is: {:X}", self.pc);
-                    println!("Vx is: {}", self.v[x]);
                 },
-                _ => println!("Unkown opcode [0xE000]: {:04x}", self.opcode),
-            },
-            _ => println!("Unknown opcode {:04x}", self.opcode),
-        }
+                // EXA1 Skip next instruction if key stored in Vx isn't pressed
+                0x00A1 => {
+                    if self.keypad[self.v[x] as usize] != 1 {
+                        self.pc += 4;
+                    } else {
+                        self.pc += 2;
+                    }
+                },
+                    _ => println!("Unknown opcode {:X}", self.opcode),
+                },
+           0xF000 => match self.opcode & 0x00FF {
+                    // FX15 Set delay timer to Vx
+                    0x0007 => {
+                        self.v[x] = self.delay_timer;
+                        self.pc += 2;
+                    },
+                    // FX0A Key press awaited then stored in Vx
+                    // All instructions halted until next key event
+                    0x000A => {
+                        // TODO: Implement keypress
+                        let mut keypad_press = false;
+                        // Keypad is 0 - 16 values
+                        for i in 0..16 {
+                            if self.keypad[i] != 0 { // key is pressed
+                                self.v[x] = i as u8;
+                                keypad_press = true;
+                            }
+                        }
+                        if !keypad_press  {
+                            return;
+                        }
+                        self.pc +=2;
+                    },
+               // FX15 Set delay timer
+               0x0015 => {
+                   self.delay_timer = self.v[x];
+                   self.pc += 2;
+               },
+               // FX18 Set sound timer
+               0x0018 => {
+                   self.sound_timer = self.v[x];
+                   self.pc += 2;
+               },
+
+               //FX1E Add Vx to I (MEM)
+               0x001E => {
+                   self.i = self.v[x] as u16;
+                   self.pc += 2;
+               },
+
+               // FX29 Set I to the location of the sprite for char in Vx
+               // Chars 0-F are represented by a 4x5 font
+               // Each character contains 5 elements
+               0x0029 => {
+                   self.i = (self.v[x] * 0x5) as u16;
+                   self.pc += 2;
+               },
+               // FX33 (BCD) Stores the binary-coded decimal representation
+               // of Vx with the most significant of the digits at the address I
+               // the middle digit at I + 1 and the least significant digit at I + 2
+               0x0033 => {
+                   // TODO  Decimal representation
+                   let mut i = self.i as usize;
+                   self.memory[i] = self.v[x];
+                   self.memory[i + 1] = self.v[x];
+                   self.memory[i + 2] = self.v[x];
+               },
+               // FX55 Stores V0 to VX in memory starting at I
+               // TODO
+               0x0055 => {
+                   self.pc += 2;
+               },
+               // FX65 Fills V0 to VX with values from memory starting at I
+               // TODO
+               0x0065 => {
+                   self.pc += 2;
+               },
+               _ => println!("Unknown opcode {:X}", self.opcode),
+           },
+            _ => println!("Unknown opcode {:X}", self.opcode),
+        };
     }
+
     pub fn update_timers(&mut self) {
         if self.delay_timer > 0 {
             self.delay_timer -= 1;
 
         }
         if self.sound_timer > 0 {
+            if self.sound_timer == 1 {
+                println!("Beep!");
+            }
             self.sound_timer -= 1;
         }
     }
