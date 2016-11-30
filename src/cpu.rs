@@ -85,15 +85,15 @@ impl Cpu {
         }
     }
 
-    // This is big-endian, so we need to shift 8 bytes to the left
-    // then bitwise-or it with the next byte to get the full 16-bit value
-    //
-    // Read in 2 bytes
+    /// This is big-endian, so we need to shift 8 bytes to the left
+    /// then bitwise-or it with the next byte to get the full 16-bit value
+    /// All instructions are 2 bytes long & are stored most-significant-byte first
+    /// One opcode is 2 bytes long. Fetch 2 bytes and merge them
+
     pub fn step(&mut self) {
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 |
         (self.memory[self.pc as usize + 1] as u16);
 
-        // All instructions are 2 bytes long & are stored most-significant-byte first
         // Decode Vx & Vy register identifiers.
         let x = ((self.opcode & 0x0F00) as usize) >> 8; // Bitshift right to get 0x4
         let y = ((self.opcode & 0x00F0) as usize) >> 4; // Original value is 0x40
@@ -105,7 +105,7 @@ impl Cpu {
 
 
         // println!("PC is: {:X}", self.pc);
-        println!("PC: {:#X}  |  Opcode: {:#X}  | Index Register: {:#X}",
+        println!("PC: 0x0{:X}  |  Opcode: {:X}  | Index Register: {:X}",
                  self.pc, self.opcode, self.i);
         // println!("Executing opcode 0x{:X}", self.opcode);
 
@@ -114,7 +114,7 @@ impl Cpu {
             0x0000 => match self.opcode & 0x000F {
 
                 // 00E0 CLS
-                0x00000 => {
+                0x0000 => {
                     // Null out the array (Set all pixels to 0)
                     for i in 0..2048 {// amount of total pixels
                         self.display[i] = 0;
@@ -133,7 +133,7 @@ impl Cpu {
                     self.pc += 2;
                     println!("At RET. PC is: {:X}", self.pc);
                 },
-                _ => println!("Unknown upcode: {:04x}", self.opcode),
+                _ => println!("Unknown upcode: {:04X}", self.opcode),
             },
             // 1NNN Jump to location
             0x1000 => {
@@ -150,7 +150,7 @@ impl Cpu {
             // 3XKK Skip next instruction if Vx = kk
             0x3000 => {
                 if self.v[x] == kk as u8 {
-                    self.pc +=2;
+                    self.pc += 4;
                     println!("At 3XKK. PC is: {:X}", self.pc);
                 }
                 self.pc += 2;
@@ -158,16 +158,16 @@ impl Cpu {
             // 4XKK Skip next instruction if Vx != kk
             0x4000 => {
                 if self.v[x] != kk as u8 {
-                    self.pc += 2;
+                    self.pc += 4;
                     println!("At 4XKK. PC is: {:X}", self.pc);
                 }
-                self.pc +=2;
+                self.pc += 2;
                 println!("Outside of 4XKK if block. PC is: {:X}", self.pc);
             },
             // 5XY0 Skip next instruction if Vx = Vy
             0x5000 => {
                 if self.v[x] == self.v[y] {
-                    self.pc += 2;
+                    self.pc += 4;
                     println!("At 5XY0. PC is: {:X}", self.pc);
                 }
                 self.pc += 2;
@@ -186,6 +186,11 @@ impl Cpu {
                 println!("At 7XKK. PC is: {:X}", self.pc);
                 println!("Vx is: {}", self.v[x]);
             },
+            0x7004 => {
+                println!("At opcode 0x7004. Address: 0x20E (add v0, 0x4)");
+                self.pc += 2;
+            },
+
             // 8XY0 Set Vx = Vy
             0x8000 =>  match self.opcode & 0x000F {
                 0x0000 => {
@@ -211,7 +216,7 @@ impl Cpu {
                 // 8XY4 Set Vx = Vx + Vy, set VF = carry
                 0x0004 => {
                     if self.v[y] > (0xFF - self.v[x]) {
-                        self.v[0xF]  = 1; // Set carry
+                        self.v[0xF]  = 1; // Set carry (also used for pixel flip)
                         println!("At 8XY4 Setting carry. PC is: {:X}", self.pc);
                         println!("Vx is: {}", self.v[x]);
 
@@ -264,12 +269,12 @@ impl Cpu {
                     println!("Vx is: {}", self.v[x]);
 
                 },
-                _ => panic!("Unknown opcode [0x8000], {:04x}, self.opcode"),
+                _ => panic!("Unknown opcode [0x8000], {:X}, self.opcode"),
             },
             // 9XY0 Skip next instruction if Vx != Vy
                 0x9000 => {
                     if self.v[x] != self.v[y] {
-                        self.pc += 2;
+                        self.pc += 4;
                         println!("At 9XY0. PC is: {:X}", self.pc);
                         println!("Vx is: {}", self.v[x]);
                     }
@@ -277,9 +282,9 @@ impl Cpu {
                 },
                 // ANNN Set I to the address of NNN
                 0xA000 => {
-                    self.i = nnn as u16;
+                    self.i = nnn;
                     println!("At ANNN. PC is: {:X}", self.pc);
-                    println!("Vx is: {}", self.v[x]);
+                    println!("Vx is: {:X}", self.v[x]);
                     self.pc += 2;
                 },
             // BNNN Jump to address NNN + V0
@@ -309,7 +314,7 @@ impl Cpu {
                 // EX9E Skip next instruction if key stores in Vx is pressed
                 0x009E => {
                     if self.keypad[self.v[x] as usize] as usize != 0 {
-                        self.pc += 2;
+                        self.pc += 4;
                         println!("At EX9E. PC is: {:X}", self.pc);
                         println!("Vx is: {}", self.v[x]);
                     }
