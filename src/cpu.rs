@@ -381,15 +381,16 @@ impl Cpu {
                    self.i = (self.v[x] * 0x5) as u16;
                    self.pc += 2;
                },
-               // FX33 (BCD) Stores the binary-coded decimal representation
-               // of Vx with the most significant of the digits at the address I
-               // the middle digit at I + 1 and the least significant digit at I + 2
+               // FX33 (BCD) The interpreter takes the decimal value of Vx
+               // & places the hundreds digit in memory at location in I,
+               // the tens digit at location I+1, and the ones digit at location I+2.
+
                0x0033 => {
                    // TODO  Decimal representation
                    let mut i = self.i as usize;
-                   self.memory[i] = self.v[x];
-                   self.memory[i + 1] = self.v[x];
-                   self.memory[i + 2] = self.v[x];
+                   self.memory[i] = self.v[x] / 100;
+                   self.memory[i + 1] = (self.v[x] / 10) % 10;
+                   self.memory[i + 2] = self.v[x]  % 10;
                },
                // FX55 Stores V0 to VX in memory starting at I
                // TODO
