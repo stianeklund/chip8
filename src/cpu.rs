@@ -26,7 +26,6 @@ const FONT: [u8; 80] = [
 
 ];
 
-// TODO: Implement input & display handling with SDL2
 pub struct Cpu {
     opcode: u16,
     memory: [u8; 4096],     // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
@@ -390,7 +389,7 @@ impl Cpu {
                    let mut i = self.i as usize;
                    self.memory[i] = self.v[x] / 100;
                    self.memory[i + 1] = (self.v[x] / 10) % 10;
-                   self.memory[i + 2] = self.v[x]  % 10;
+                   self.memory[i + 2] = (self.v[x]  % 100) % 10;
                },
                // FX55 Stores V0 to VX in memory starting at I
                // TODO
