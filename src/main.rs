@@ -7,6 +7,7 @@ use std::env;
 mod cpu;
 mod display;
 use display::Display;
+use sdl2::event::Event;
 const DEBUG: bool = false;
 
 fn main() {
@@ -22,21 +23,21 @@ fn main() {
     // Initialize CPU
     let mut cpu = cpu::Cpu::new();
     let sdl_context = sdl2::init().expect("sdl2 init failed in main");
-
     // Load rom
     cpu.load_bin(bin);
 
     // Initialize SDL Window
-    let mut window = Display::new(&sdl_context);
+    let mut display = Display::new(&sdl_context);
     // Lazy debugging..
     if DEBUG {
-        cpu.step();
+        cpu.step(&mut display);
         cpu.update_timers();
     } else {
         'step: loop {
             // if draw_flag is set do
             if cpu.draw_flag {
-                cpu.step();
+                cpu.step(&mut display);
+                display.render(&cpu.pixels);
                 cpu.update_timers();
             }
         }
