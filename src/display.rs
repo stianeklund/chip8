@@ -52,9 +52,9 @@ impl<'a> Display<'a> {
         for y in 0..32 {
             for x in 0..64 {
                 if sprites[y][x] {
-                    self.renderer.set_draw_color(Color::RGB(0, 0, 0));
-                } else {
                     self.renderer.set_draw_color(Color::RGB(255, 255, 255));
+                } else {
+                    self.renderer.set_draw_color(Color::RGB(0, 0, 0));
                 }
                 self.renderer.draw_point(Point::new(x as i32, y as i32));
             }
@@ -72,7 +72,7 @@ impl<'a> Display<'a> {
                 renderer.fill_rect(Rect::new(
                     x as i32, y as i32, 64 as u32, 32 as u32)).unwrap();
                                    renderer.present();
-                self.draw_flag = false;
+                self.draw_flag = true;
             }
         }
     }
