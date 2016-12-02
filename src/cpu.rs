@@ -39,8 +39,7 @@ pub struct Cpu {
     delay_timer: u8,            // 8-bit Delay Timer
     sound_timer: u8,            // 8-bit Sound Timer
     pub draw_flag: bool,        // 0x00E0 CLS
-    pub pixels: [[bool; 64 as usize]; 32 as usize],
-    // pub display: Display<'a>,
+    pub pixels: [[bool; 64 as usize]; 32 as usize], // For rendering
     //display: [u8; 64 * 32], // Display is an array of 64x32 pixels
     keypad: [u16; 16]           // Keypad is HEX based(0x0-0xF)
     // * VF is a special register used to store overflow bit
@@ -377,16 +376,21 @@ impl Cpu {
                     self.memory[i] = self.v[x as usize] / 100;
                     self.memory[i + 1] = (self.v[x as usize] / 10) % 10;
                     self.memory[i + 2] = (self.v[x as usize]  % 100) % 10;
-                    println!("memory:{}", self.memory[i]);
                 },
                 // FX55 Stores V0 to VX in memory starting at I
                 // TODO
                 0x0055 => {
-                    self.pc += 2;
+                    for x in 0..(x + 1) {
+                        self.memory[self.v[x] as usize] = self.memory[self.v[x] as usize + x];
+                    }
+                         self.pc += 2;
                 },
                 // FX65 Fills V0 to VX with values from memory starting at I
                 // TODO
                 0x0065 => {
+                    for x in 0..(x + 1) {
+                        self.memory[self.v[x] as usize] = self.memory[self.v[x] as usize + x];
+                    }
                     self.pc += 2;
                 },
                 _ => println!("Unknown opcode: {}", self.opcode),
