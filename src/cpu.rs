@@ -7,6 +7,8 @@ use rand;
 use rand::Rng;
 use display::Display;
 
+const DEBUG: bool = false;
+
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
 const FONT: [u8; 80] = [
@@ -118,9 +120,10 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
 
-        // println!("PC is: {:X}", self.pc);
+        if DEBUG {
         println!("PC: 0x0{:X}  |  Opcode: {:X}  | Index Register: {:X}",
                  self.pc, self.opcode, self.i);
+        }
 
         // TODO: Move opcodes into separate method
         match self.opcode & 0xF000 {
@@ -136,7 +139,8 @@ impl Cpu {
 
                 // Set pc to address at the top of the stack then subtract 1 from SP
                 0x000E => {
-                    self.sp -= 1;
+                    self.sp = self.sp.wrapping_sub(1 as u16);
+                    // self.sp -= 1;
                     self.pc = self.stack[(self.sp as usize)];
                     self.pc += 2;
                 },
@@ -283,8 +287,8 @@ impl Cpu {
 
                 let mut flipped = false;
 
-                for y in 0..height {
-                    let row = self.memory[self.i as usize + y];
+              for y in 0..height {
+                    let row = self.memory[self.i as usize + y] as u16;
                     for x in 0..8 {
                         if row & ((0x80 >> x as u8)) != 0 {
                             flipped |= self.pixels[(y_index + y) % 32]
