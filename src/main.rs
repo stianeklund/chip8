@@ -8,7 +8,7 @@ mod cpu;
 mod display;
 use display::Display;
 use sdl2::event::Event;
-const DEBUG: bool = false;
+use sdl2::keyboard::Keycode;
 
 fn main() {
 
@@ -22,23 +22,33 @@ fn main() {
 
     // Initialize CPU
     let mut cpu = cpu::Cpu::new();
+
+    // SDL2 context
     let sdl_context = sdl2::init().expect("sdl2 init failed in main");
-    // Load rom
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
+    // Load rom (TODO: check size)
     cpu.load_bin(bin);
 
     // Initialize SDL Window
     let mut display = Display::new(&sdl_context);
-    // Lazy debugging..
-    if DEBUG {
-        cpu.step(&mut display);
-        cpu.update_timers();
-    } else {
-        'step: loop {
-            // if draw_flag is set do
-            if cpu.draw_flag {
-                cpu.step(&mut display);
-                display.render(&cpu.pixels);
-                cpu.update_timers();
+
+    // CPU execution cycle
+    'step: loop {
+        if cpu.draw_flag {
+            cpu.step(&mut display);
+            display.draw(&cpu.pixels);
+            cpu.update_timers();
+        }
+
+        // Iterate over eventpump & wait for Esc
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit {..} |
+                // TODO Implement keyboard
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
+                    break 'step,
+                _ => {}
             }
         }
     }
