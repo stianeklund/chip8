@@ -184,7 +184,8 @@ impl Cpu {
             },
             // 7XKK Add value kk to Vx
             0x7000 => {
-                self.v[x as usize] += nn as u8;
+                // Wrapping (modular) addition, prevents add overflow
+                self.v[x] = self.v[x].wrapping_add(nn as u8) as u8;
                 self.pc += 2;
             },
 
@@ -350,7 +351,7 @@ impl Cpu {
 
                 //FX1E Add Vx to I (MEM)
                 0x001E => {
-                    self.i = self.v[x as usize] as u16;
+                    self.i = self.i.wrapping_add(self.v[x as usize] as u16);
                     self.pc += 2;
                 },
 
