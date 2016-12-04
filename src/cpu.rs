@@ -228,6 +228,7 @@ impl Cpu {
                 0x0006 => {
                     self.v[0xF] = self.v[x as usize] & 0x1;
                     self.v[x as usize] >>= 1;
+                    self.pc += 2;
                 },
                 // 8XY7 Set Vx = Vy - Vx, VF NOT borrow
                 0x0007 => {
@@ -236,6 +237,7 @@ impl Cpu {
                     } else {
                         self.v[0xF] = 0;
                     }
+                    self.pc +=2;
                 },
                 // 8XYE
                 // If the most-significant bit of Vx is 1 then VF is set to 1
