@@ -17,14 +17,14 @@ impl<'a> Display<'a> {
 
         // Initialize SDL2
         let video = sdl_context.video().unwrap();
-        let mut timer = sdl_context.timer().unwrap();
+        // let mut timer = sdl_context.timer().unwrap();
 
         // Create window
         let window = video.window("Chip-8", 64*10, 32*10)
             .position_centered()
             .build()
             .expect("Window creation failed");
-        let mut renderer = window.renderer()
+        let renderer = window.renderer()
             .accelerated()
             .build()
             .unwrap();
