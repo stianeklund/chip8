@@ -1,4 +1,5 @@
 // src/cpu.rs
+
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -48,7 +49,7 @@ impl Cpu {
     pub fn new() -> Cpu {
         let mut memory: [u8; 4096] = [0; 4096];
 
-        // load sprites into memory
+        // Load sprites into memory
         for i in 0..80 {
             memory[i] = FONT[i];
         }
@@ -65,9 +66,6 @@ impl Cpu {
             sound_timer: 0,
             draw_flag: true,
             pixels: [[false; 64 as usize]; 32 as usize],
-
-            // display: [0; 64 * 32],
-            //display: Display::new(&sdl_context),
             keypad: [0; 16]
         }
     }
@@ -112,12 +110,12 @@ impl Cpu {
 
         // Decode Vx & Vy register identifiers.
         let x = ((self.opcode & 0x0F00) as usize) >> 8; // Bitshift right to get 0x4
-        let y = ((self.opcode & 0x00F0) as u8) >> 4; // Original value is 0x40
+        let y = ((self.opcode & 0x00F0) as u8) >> 4;    // Original value is 0x40
         // let n = (self.opcode & 0x000F) as u8;        // nibble 4-bit value
 
-        let nn = self.opcode & 0x00FF;               // 8 bit constant u16
-        let nnn = self.opcode & 0x0FFF;              // addr 12-bit value
-        let kk = self.opcode & 0x00FF;               // u8, byte 8-bit value
+        let nn = self.opcode & 0x00FF;                  // 8 bit constant u16
+        let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
+        let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
 
         // println!("PC is: {:X}", self.pc);
@@ -133,7 +131,7 @@ impl Cpu {
                     // Set all pixels to 0
                     display.clear();
                     self.draw_flag = true;
-                    self.pc += 2; // increment PC by 2
+                    self.pc += 2;
                 },
 
                 // Set pc to address at the top of the stack then subtract 1 from SP
@@ -184,7 +182,7 @@ impl Cpu {
             // 7XKK Add value kk to Vx
             0x7000 => {
                 // Wrapping (modular) addition, prevents add overflow
-                self.v[x] = self.v[x].wrapping_add(nn as u8) as u8;
+                self.v[x] = self.v[x].wrapping_add(kk as u8) as u8;
                 self.pc += 2;
             },
 
@@ -194,12 +192,18 @@ impl Cpu {
                     self.v[x as usize] = self.v[y as usize];
                     self.pc += 2;
                 },
-                // 8XY1 Set Vx to Vx & Vy
+                // 8XY1 Set Vx to Vx OR Vy
                 0x0001 => {
+                self.v[x as usize] = self.v[x as usize] | self.v[y as usize];
+                self.pc += 2;
+
+                },
+                // 8XY2 Set Vx to Vx OR Vy
+                0x0002 => {
                     self.v[x as usize] = self.v[x as usize] & self.v[y as usize];
                     self.pc += 2;
                 },
-                // 8XY3 Set Vx to XOR Vy
+                // 8XY3 Set Vx to Vx XOR Vy
                 0x0003 => {
                     self.v[x as usize] = self.v[x as usize] ^ self.v[y as usize];
                     self.pc += 2;
@@ -271,10 +275,8 @@ impl Cpu {
                 self.pc += 2;
             },
             // DXYN Draw to display
+            // TODO: Move into spearate function
             0xD000 => {
-                // READ: http://devernay.free.fr/hacks/chip8/2.4
-
-                // TODO: Move into spearate function
                 let x_index = self.v[(self.opcode << 4 >> 12) as usize] as usize;
                 let y_index = self.v[(self.opcode << 8 >> 12) as usize] as usize;
                 let height = (self.opcode << 12 >> 12) as usize;
@@ -306,6 +308,7 @@ impl Cpu {
                         self.pc += 2;
                     }
                 },
+
                 // EXA1 Skip next instruction if key stored in Vx isn't pressed
                 0x00A1 => {
                     if self.keypad[self.v[x as usize] as usize] != 1 {
@@ -322,6 +325,7 @@ impl Cpu {
                     self.v[x as usize] = self.delay_timer;
                     self.pc += 2;
                 },
+
                 // FX0A Key press awaited then stored in Vx
                 // All instructions halted until next key event
                 0x000A => {
@@ -391,9 +395,9 @@ impl Cpu {
                     }
                     self.pc += 2;
                 },
-                _ => println!("Unknown opcode: {}", self.opcode),
+                _ => println!("Unknown opcode: {:X}", self.opcode),
             },
-            _ => println!("Unknown opcode: {}", self.opcode),
+            _ => println!("Unknown opcode: {:X}", self.opcode),
         };
     }
 }
