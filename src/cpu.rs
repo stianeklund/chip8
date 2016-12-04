@@ -148,7 +148,6 @@ impl Cpu {
             // 1NNN Jump to location
             0x1000 => {
                 self.pc = nnn;
-                println!("At 1NNN. PC is: {:X}", self.pc);
             },
             // 2NNN Call subroutine at nnn
             0x2000 => {
