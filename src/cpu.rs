@@ -30,18 +30,17 @@ const FONT: [u8; 80] = [
 
 pub struct Cpu {
     opcode: u16,
-    memory: [u8; 4096],         // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
-    v: [u8; 16],                // 8-bit general purpose register, (V0 - VE*).
-    i: u16,                     // Index register (start at 0x200)
-    pc: u16,                    // Program Counter. Jump to 0x200 on RST
-    stack: [u16; 16],           // Interpreter returns to value when done with subroutine
-    sp: u16,                    // Stack pointer
-    delay_timer: u8,            // 8-bit Delay Timer
-    sound_timer: u8,            // 8-bit Sound Timer
-    pub draw_flag: bool,        // 0x00E0 CLS
+    memory: [u8; 4096],             // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
+    v: [u8; 16],                    // 8-bit general purpose register, (V0 - VE*).
+    i: u16,                         // Index register (start at 0x200)
+    pc: u16,                        // Program Counter. Jump to 0x200 on RST
+    stack: [u16; 16],               // Interpreter returns to value when done with subroutine
+    sp: u16,                        // Stack pointer
+    delay_timer: u8,                // 8-bit Delay Timer
+    sound_timer: u8,                // 8-bit Sound Timer
+    pub draw_flag: bool,            // 0x00E0 CLS
     pub pixels: [[bool; 64 as usize]; 32 as usize], // For rendering
-    //display: [u8; 64 * 32], // Display is an array of 64x32 pixels
-    keypad: [u16; 16]           // Keypad is HEX based(0x0-0xF)
+    pub keypad: [u16; 16]           // Keypad is HEX based(0x0-0xF)
     // * VF is a special register used to store overflow bit
 }
 
@@ -124,7 +123,6 @@ impl Cpu {
         // println!("PC is: {:X}", self.pc);
         println!("PC: 0x0{:X}  |  Opcode: {:X}  | Index Register: {:X}",
                  self.pc, self.opcode, self.i);
-        // println!("Executing opcode 0x{:X}", self.opcode);
 
         // TODO: Move opcodes into separate method
         match self.opcode & 0xF000 {
@@ -132,10 +130,7 @@ impl Cpu {
 
                 // 00E0 CLS
                 0x0000 => {
-                    // Null out the array (Set all pixels to 0)
-                    // for i in 0..2048 {// amount of total pixels
-                      //  self.display[i] = 0;
-                    // }
+                    // Set all pixels to 0
                     display.clear();
                     self.draw_flag = true;
                     self.pc += 2; // increment PC by 2
@@ -277,6 +272,7 @@ impl Cpu {
             0xD000 => {
                 // READ: http://devernay.free.fr/hacks/chip8/2.4
 
+                // TODO: Move into spearate function
                 let x_index = self.v[(self.opcode << 4 >> 12) as usize] as usize;
                 let y_index = self.v[(self.opcode << 8 >> 12) as usize] as usize;
                 let height = (self.opcode << 12 >> 12) as usize;
