@@ -52,7 +52,7 @@ impl<'a> Display<'a> {
                 }
                 // Scaling
                 self.renderer.fill_rect(
-                    Rect::new(x as i32 * 10, y as i32 * 10, 10 as u32, 10 as u32 )).unwrap();
+                    Rect::new(x as i32 * 10, y as i32 * 10, 16 as u32, 16 as u32 )).unwrap();
             }
         }
 
