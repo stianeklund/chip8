@@ -88,6 +88,9 @@ impl Cpu {
         for i in 0..buf_size {
             self.memory[i + 512] = buf[i];
         }
+        if buf.len() >= 3584 {
+            panic!("ROM is too large");
+        }
     }
 
     pub fn update_timers(&mut self) {
@@ -122,7 +125,7 @@ impl Cpu {
 
 
         if DEBUG {
-        println!("PC: 0x0{:X}  |  Opcode: {:X}  | Index Register: {:X}",
+        println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X}",
                  self.pc, self.opcode, self.i);
         }
 
@@ -140,9 +143,11 @@ impl Cpu {
 
                 // Set pc to address at the top of the stack then subtract 1 from SP
                 0x000E => {
-                    self.sp = self.sp.wrapping_sub(1 as u16);
-                    // self.sp -= 1;
+                    // Overflow happens here with certain ROMS
+                    // self.sp = self.sp.wrapping_sub(1 as u16);
+                    self.sp -= 1;
                     self.pc = self.stack[(self.sp as usize)];
+
                     self.pc += 2;
                 },
                 _ => println!("Unknown upcode: {:X}", self.opcode),
@@ -161,21 +166,21 @@ impl Cpu {
             // 3XKK Skip next instruction if Vx = kk
             0x3000 => {
                 if self.v[x as usize] == kk as u8 {
-                    self.pc += 2;
+                    self.pc += 4;
                 }
                 self.pc += 2;
             },
             // 4XKK Skip next instruction if Vx != kk
             0x4000 => {
                 if self.v[x as usize] != kk as u8 {
-                    self.pc += 2;
+                    self.pc += 4;
                 }
                 self.pc += 2;
             },
             // 5XY0 Skip next instruction if Vx = Vy
             0x5000 => {
                 if self.v[x as usize] == self.v[y as usize] {
-                    self.pc += 2;
+                    self.pc += 4;
                 }
                 self.pc += 2;
             },
@@ -261,8 +266,10 @@ impl Cpu {
             // 9XY0 Skip next instruction if Vx != Vy
                 0x9000 => {
                     if self.v[x as usize] != self.v[y as usize] {
+                        self.pc += 4;
+                    } else {
+                        self.pc += 2;
                     }
-                    self.pc += 2;
                 },
                 // ANNN Set I to the address of NNN
                 0xA000 => {
@@ -290,7 +297,7 @@ impl Cpu {
 
                 let mut flipped = false;
 
-              for y in 0..height {
+                for y in 0..height {
                     let row = self.memory[self.i as usize + y] as u16;
                     for x in 0..8 {
                         if row & ((0x80 >> x as u8)) != 0 {
@@ -310,7 +317,7 @@ impl Cpu {
                 // Usually the next instruction is JMP to skip to a code block
                 0x009E => {
                     if self.keypad[self.v[x as usize] as usize] != 0 {
-                        self.pc += 2;
+                        self.pc += 4;
                     } else {
                         self.pc += 2;
                     }
@@ -319,7 +326,7 @@ impl Cpu {
                 // EXA1 Skip next instruction if key stored in Vx isn't pressed
                 0x00A1 => {
                     if self.keypad[self.v[x as usize] as usize] != 1 {
-                        self.pc += 2;
+                        self.pc += 4;
                     } else {
                         self.pc += 2;
                     }
@@ -348,7 +355,7 @@ impl Cpu {
                     if !keypad_press  {
                         return;
                     }
-                    self.pc +=2;
+                    self.pc += 2;
                 },
                 // FX15 Set delay timer
                 0x0015 => {
@@ -385,6 +392,7 @@ impl Cpu {
                     self.memory[i] = self.v[x as usize] / 100;
                     self.memory[i + 1] = (self.v[x as usize] / 10) % 10;
                     self.memory[i + 2] = (self.v[x as usize]  % 100) % 10;
+                    self.pc += 2;
                 },
                 // FX55 Stores V0 to VX in memory starting at I
                 0x0055 => {

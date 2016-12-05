@@ -10,6 +10,7 @@ use display::Display;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
+const DEBUG: bool = false;
 
 fn main() {
 
@@ -56,7 +57,9 @@ fn main() {
         before = now;
         fps += 1;
         if now - last_second > 1_000 {
-            println!("FPS: {}", fps);
+            if DEBUG {
+                println!("FPS: {}", fps);
+            }
             last_second = now;
             fps = 0;
         }
