@@ -141,7 +141,6 @@ impl Cpu {
                 // Set pc to address at the top of the stack then subtract 1 from SP
                 0x000E => {
                     self.sp = self.sp.wrapping_sub(1 as u16);
-                    println!("I reg is: {}, {:02X}", self.i, self.opcode);
                     // self.sp -= 1;
                     self.pc = self.stack[(self.sp as usize)];
                     self.pc += 2;

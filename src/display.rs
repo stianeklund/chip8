@@ -24,7 +24,7 @@ impl<'a> Display<'a> {
             .position_centered()
             .build()
             .expect("Window creation failed");
-        let renderer = window.renderer()
+        let renderer = window.renderer().present_vsync()
             .accelerated()
             .build()
             .unwrap();
@@ -52,6 +52,7 @@ impl<'a> Display<'a> {
                 }
                 // Scaling
                 self.renderer.fill_rect(
+
                     Rect::new(x as i32 * 10, y as i32 * 10, 16 as u32, 16 as u32 )).unwrap();
             }
         }
