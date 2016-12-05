@@ -143,12 +143,14 @@ impl Cpu {
 
                 // Set pc to address at the top of the stack then subtract 1 from SP
                 0x000E => {
-                    // Overflow happens here with certain ROMS
-                    // self.sp = self.sp.wrapping_sub(1 as u16);
-                    self.sp -= 1;
+                    // Underflow happens here with certain ROMS
+                    println!("{:X}", self.opcode);
+                    self.sp = self.sp.wrapping_sub(1 as u16);
+                    println!("Stack value: {:?}", self.stack);
+                    // self.sp -= 1;
                     self.pc = self.stack[(self.sp as usize)];
 
-                    self.pc += 2;
+                    // self.pc += 2;
                 },
                 _ => println!("Unknown upcode: {:X}", self.opcode),
             },
@@ -159,7 +161,8 @@ impl Cpu {
             },
             // 2NNN Call subroutine at nnn
             0x2000 => {
-                self.stack[self.sp as usize] = self.pc;
+                println!("Opcode {:X}, PC: {:X}", self.opcode, self.pc);
+                self.stack[self.sp as usize] = self.pc + 2;
                 self.sp += 1;
                 self.pc = nnn;
             },
@@ -172,6 +175,7 @@ impl Cpu {
             },
             // 4XKK Skip next instruction if Vx != kk
             0x4000 => {
+                // self.opcode & 0x00FF;
                 if self.v[x as usize] != kk as u8 {
                     self.pc += 4;
                 }
@@ -187,7 +191,7 @@ impl Cpu {
             // 6XKK Set Vx = kk. Put value of kk in to Vx register
             0x6000 => {
                 self.v[x as usize] == kk as u8;
-                self.pc += 2; // Add for test
+                self.pc += 2;
             },
             // 7XKK Add value kk to Vx
             0x7000 => {
