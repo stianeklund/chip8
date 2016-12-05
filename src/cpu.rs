@@ -7,7 +7,7 @@ use rand;
 use rand::Rng;
 use display::Display;
 
-const DEBUG: bool = false;
+const DEBUG: bool = true;
 
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
@@ -89,6 +89,7 @@ impl Cpu {
             self.memory[i + 512] = buf[i];
         }
     }
+
     pub fn update_timers(&mut self) {
         if self.delay_timer > 0 {
             self.delay_timer -= 1;
@@ -140,6 +141,7 @@ impl Cpu {
                 // Set pc to address at the top of the stack then subtract 1 from SP
                 0x000E => {
                     self.sp = self.sp.wrapping_sub(1 as u16);
+                    println!("I reg is: {}, {:02X}", self.i, self.opcode);
                     // self.sp -= 1;
                     self.pc = self.stack[(self.sp as usize)];
                     self.pc += 2;
@@ -160,21 +162,21 @@ impl Cpu {
             // 3XKK Skip next instruction if Vx = kk
             0x3000 => {
                 if self.v[x as usize] == kk as u8 {
-                    self.pc += 4;
+                    self.pc += 2;
                 }
                 self.pc += 2;
             },
             // 4XKK Skip next instruction if Vx != kk
             0x4000 => {
                 if self.v[x as usize] != kk as u8 {
-                    self.pc += 4;
+                    self.pc += 2;
                 }
                 self.pc += 2;
             },
             // 5XY0 Skip next instruction if Vx = Vy
             0x5000 => {
                 if self.v[x as usize] == self.v[y as usize] {
-                    self.pc += 4;
+                    self.pc += 2;
                 }
                 self.pc += 2;
             },
@@ -229,6 +231,7 @@ impl Cpu {
                     } else {
                         self.v[0xF] = 0;
                     }
+                    self.pc += 2;
                 },
                 // 8XY6 Vx = Vx Shift right by 1 If the least-significant bit of
                 // Vx is 1 then VF is set to 1, otherwise 0. Then Vx is divided by 2
@@ -244,7 +247,7 @@ impl Cpu {
                     } else {
                         self.v[0xF] = 0;
                     }
-                    self.pc +=2;
+                    self.pc += 2;
                 },
                 // 8XYE
                 // If the most-significant bit of Vx is 1 then VF is set to 1
@@ -252,13 +255,13 @@ impl Cpu {
                 0x000E => {
                     self.v[0xF] = self.v[x as usize] >> 7;
                     self.v[x as usize] <<= 1;
+                    self.pc += 2;
                 },
                 _ => println!("Unknown opcode [0x8000], {:X}", self.opcode),
             },
             // 9XY0 Skip next instruction if Vx != Vy
                 0x9000 => {
                     if self.v[x as usize] != self.v[y as usize] {
-                        self.pc += 4;
                     }
                     self.pc += 2;
                 },
@@ -270,6 +273,7 @@ impl Cpu {
             // BNNN Jump to address NNN + V0
             0xB000 => {
                 self.pc = nnn + self.v[0x0] as u16;
+                self.pc += 2;
             },
             // CXNN Set Vx to a random number masked by NN
             0xC000 => {
@@ -307,7 +311,7 @@ impl Cpu {
                 // Usually the next instruction is JMP to skip to a code block
                 0x009E => {
                     if self.keypad[self.v[x as usize] as usize] != 0 {
-                        self.pc += 4;
+                        self.pc += 2;
                     } else {
                         self.pc += 2;
                     }
@@ -316,7 +320,7 @@ impl Cpu {
                 // EXA1 Skip next instruction if key stored in Vx isn't pressed
                 0x00A1 => {
                     if self.keypad[self.v[x as usize] as usize] != 1 {
-                        self.pc += 4;
+                        self.pc += 2;
                     } else {
                         self.pc += 2;
                     }
@@ -384,7 +388,6 @@ impl Cpu {
                     self.memory[i + 2] = (self.v[x as usize]  % 100) % 10;
                 },
                 // FX55 Stores V0 to VX in memory starting at I
-                // TODO
                 0x0055 => {
                     for x in 0..(x + 1) {
                         self.memory[self.v[x] as usize] = self.memory[self.v[x] as usize + x];
@@ -392,7 +395,6 @@ impl Cpu {
                          self.pc += 2;
                 },
                 // FX65 Fills V0 to VX with values from memory starting at I
-                // TODO
                 0x0065 => {
                     for x in 0..(x + 1) {
                         self.memory[self.v[x] as usize] = self.memory[self.v[x] as usize + x];
@@ -405,5 +407,3 @@ impl Cpu {
         };
     }
 }
-
-
