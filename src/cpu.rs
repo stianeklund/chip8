@@ -244,6 +244,7 @@ impl Cpu {
                     } else {
                         self.v[0xF] = 0;
                     }
+                    // self.v[x] = self.v[x as usize] - self.v[y as usize];
                     self.pc += 2;
                 },
                 // 8XY6 Vx = Vx Shift right by 1 If the least-significant bit of
@@ -287,10 +288,10 @@ impl Cpu {
                 },
             // BNNN Jump to address NNN + V0
             0xB000 => {
-                //self.pc = nnn + self.v[0x0] as u16;
-                self.pc = self.v[0x0] as u16 + nnn;
+                self.pc = nnn + self.v[0x0] as u16;
+                // self.pc = self.v[0x0] as u16 + nnn;
                 // Should self.pc be incremented here? Isn't this a subroutine call?
-                self.pc += 2;
+                // self.pc += 2;
             },
             // CXNN Set Vx to a random number masked by NN
             0xC000 => {
