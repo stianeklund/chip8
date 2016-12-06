@@ -125,44 +125,48 @@ impl Cpu {
 
 
         if DEBUG {
-        println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X}",
-                 self.pc, self.opcode, self.i);
+        println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X},  | Stack: {:?}",
+                 self.pc, self.opcode, self.i, self.stack);
         }
 
         // TODO: Move opcodes into separate method
         match self.opcode & 0xF000 {
-            0x0000 => match self.opcode & 0x000F {
+            // Relying on the first 4 bits is not enough in this case.
+            // We need to compare the last four bits, hence the second match block.
+            0x0000 => {
+                match self.opcode {
+                    // 00E0 CLS
+                    0x00E0 => {
+                        // Set all pixels to 0
+                        display.clear();
+                        self.draw_flag = true;
+                        self.pc += 2;
+                    },
 
-                // 00E0 CLS
-                0x0000 => {
-                    // Set all pixels to 0
-                    display.clear();
-                    self.draw_flag = true;
-                    self.pc += 2;
-                },
-
-                // Set pc to address at the top of the stack then subtract 1 from SP
-                0x000E => {
-                    // Underflow happens here with certain ROMS
-                    println!("{:X}", self.opcode);
-                    self.sp = self.sp.wrapping_sub(1 as u16);
-                    println!("Stack value: {:?}", self.stack);
-                    // self.sp -= 1;
-                    self.pc = self.stack[(self.sp as usize)];
-
-                    // self.pc += 2;
-                },
-                _ => println!("Unknown upcode: {:X}", self.opcode),
+                    // 00EE RET (Return from subroutine call)
+                    // Set pc to address at the top of the stack then subtract 1 from SP
+                    0x00EE => {
+                        // Underflow happens here with certain ROMS
+                        self.sp = self.sp.wrapping_sub(1 as u16);
+                        // self.sp -= 1;
+                        self.pc = self.stack[(self.sp as usize)];
+                        self.pc += 2;
+                    },
+                    0x0000 => {
+                        return;
+                    }
+                    _ => println!("Unknown upcode: {:X}", self.opcode)
+                }
             },
+
 
             // 1NNN Jump to location
             0x1000 => {
                 self.pc = nnn;
             },
-            // 2NNN Call subroutine at nnn
+            // 2NNN Jump to subroutine at address nnn
             0x2000 => {
-                println!("Opcode {:X}, PC: {:X}", self.opcode, self.pc);
-                self.stack[self.sp as usize] = self.pc + 2;
+                self.stack[self.sp as usize] = self.pc;
                 self.sp += 1;
                 self.pc = nnn;
             },
@@ -275,15 +279,17 @@ impl Cpu {
                         self.pc += 2;
                     }
                 },
-                // ANNN Set I to the address of NNN
+                // ANNN Load index register (I) with NNN
                 0xA000 => {
                     self.i = nnn;
                     self.pc += 2;
                 },
             // BNNN Jump to address NNN + V0
             0xB000 => {
-                self.pc = nnn + self.v[0x0] as u16;
-                self.pc += 2;
+                //self.pc = nnn + self.v[0x0] as u16;
+                self.pc = self.v[0x0] as u16 + nnn;
+                // Should self.pc be incremented here? Isn't this a subroutine call?
+                // self.pc += 2;
             },
             // CXNN Set Vx to a random number masked by NN
             0xC000 => {
