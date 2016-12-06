@@ -37,7 +37,7 @@ fn main() {
     let mut display = Display::new(&sdl_context);
 
     // Frame timing
-    let interval = 1_000 / 600;
+    let interval = 1_000 / 60;
     let mut before = timer.ticks();
     let mut last_second = timer.ticks();
     let mut fps = 0u16;
@@ -47,17 +47,17 @@ fn main() {
         // Timing second instance
         let now = timer.ticks();
         let dt = now - before;
-        let elapsed = dt as f64 / 1_000.0;
+        // let elapsed = dt as f64 / 1_000.0;
 
-        if dt < interval {
-            timer.delay(interval - dt);
-            println!("Time elapsed since last frame is too small");
-            continue;
-        }
-        before = now;
-        fps += 1;
-        if now - last_second > 1_000 {
-            if DEBUG {
+            if dt < interval {
+                timer.delay(interval - dt);
+                if DEBUG {
+                    println!("Time elapsed since last frame is too small");
+                    continue;
+                }
+                before = now;
+                fps += 1;
+            if now - last_second < 1_000 {
                 println!("FPS: {}", fps);
             }
             last_second = now;
