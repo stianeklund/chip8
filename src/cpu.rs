@@ -144,11 +144,9 @@ impl Cpu {
                     },
 
                     // 00EE RET (Return from subroutine call)
-                    // Set pc to address at the top of the stack then subtract 1 from SP
                     0x00EE => {
-                        // Underflow happens here with certain ROMS
-                        self.sp = self.sp.wrapping_sub(1 as u16);
-                        // self.sp -= 1;
+                        // self.sp = self.sp.wrapping_sub(1 as u16);
+                        self.sp -= 1;
                         self.pc = self.stack[(self.sp as usize)];
                         self.pc += 2;
                     },
@@ -170,27 +168,30 @@ impl Cpu {
                 self.sp += 1;
                 self.pc = nnn;
             },
-            // 3XKK Skip next instruction if Vx = kk
+            // 3XKK Skip next instruction if Vx = nn
             0x3000 => {
-                if self.v[x as usize] == kk as u8 {
+                if self.v[x as usize] == nn as u8 {
                     self.pc += 4;
+                } else {
+                    self.pc += 2;
                 }
-                self.pc += 2;
             },
-            // 4XKK Skip next instruction if Vx != kk
+            // 4XKK Skip next instruction if Vx != nn
             0x4000 => {
                 // self.opcode & 0x00FF;
                 if self.v[x as usize] != kk as u8 {
                     self.pc += 4;
+                } else {
+                    self.pc += 2;
                 }
-                self.pc += 2;
             },
             // 5XY0 Skip next instruction if Vx = Vy
             0x5000 => {
                 if self.v[x as usize] == self.v[y as usize] {
                     self.pc += 4;
+                } else {
+                    self.pc += 2;
                 }
-                self.pc += 2;
             },
             // 6XKK Set Vx = kk. Put value of kk in to Vx register
             0x6000 => {
@@ -289,7 +290,7 @@ impl Cpu {
                 //self.pc = nnn + self.v[0x0] as u16;
                 self.pc = self.v[0x0] as u16 + nnn;
                 // Should self.pc be incremented here? Isn't this a subroutine call?
-                // self.pc += 2;
+                self.pc += 2;
             },
             // CXNN Set Vx to a random number masked by NN
             0xC000 => {
