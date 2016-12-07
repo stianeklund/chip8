@@ -115,13 +115,13 @@ impl Cpu {
         (self.memory[self.pc as usize + 1] as u16);
 
         // Decode Vx & Vy register identifiers.
-        let x = ((self.opcode & 0x0F00) as u16) >> 8; // Bitshift right to get 0x4
+        let x = ((self.opcode & 0x0F00) as u16) >> 8;   // Bitshift right to get 0x4
         let y = ((self.opcode & 0x00F0) as u8) >> 4;    // Original value is 0x40
 
-        // let x = self.opcode & 0x0F00  >> 8; // Bitshift right to get 0x4
-        // let y = self.opcode & 0x00F0  >> 4;    // Original value is 0x40
-        // let n = self.opcode & 0x000F;        // nibble 4-bit value
-        // let nn = self.opcode & 0x00FF;                  // 8 bit constant u16
+        // let x = self.opcode & 0x0F00  >> 8;          // Bitshift right to get 0x4
+        // let y = self.opcode & 0x00F0  >> 4;          // Original value is 0x40
+        // let n = self.opcode & 0x000F;                // nibble 4-bit value
+        // let nn = self.opcode & 0x00FF;               // 8 bit constant u16
 
         let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
@@ -140,6 +140,7 @@ impl Cpu {
                     // 00E0 CLS
                     0x00E0 => {
                         display.clear();
+                        self.pixels = [[false; 64]; 32];
                         self.draw_flag = true;
                         self.pc += 2;
                     },
@@ -307,45 +308,33 @@ impl Cpu {
             // Draw sprite starting at x, y which is n lines of 8 pixels stored
             // starting at memory location of self.i
             0xD000 => {
-                // let sprite_x = self.opcode & 0x0F00 >> 8 as u16;
-                // let sprite_y = self.opcode & 0x00F0 >> 4 as u16;
-                // let sprite_h = (self.opcode & 0x000F) as u16;
+               // let sprite_x = self.opcode as usize & 0x0F00 >> 8 as usize;
+               // let sprite_y = self.opcode as usize & 0x00F0 >> 4 as usize;
+               // let sprite_h = (self.opcode as usize & 0x000F) as usize;
 
                 let sprite_x = self.v[(self.opcode << 4 >> 12) as usize] as usize;
                 let sprite_y = self.v[(self.opcode << 8 >> 12) as usize] as usize;
                 let sprite_h = (self.opcode << 12 >> 12) as usize;
 
+                println!("Sprite values: X: {}, Y:{}, H:{}", sprite_x, sprite_y, sprite_h);
                 let mut flipped = false;
                 self.v[0xF] = 0;
 
-                /*for y in 0..sprite_h {
-                    let byte = self.memory[self.i as usize + y as usize];
+                for y in 0..sprite_h {
+                    let row = self.memory[self.i as usize + y as usize] as u16;
                     for x in 0..8 {
-                        if byte & ((0x80 >> x as u8)) != 0 {
-                            flipped |= self.pixels[(sprite_y as usize + y as usize) % 32]
-                                [(sprite_x as usize + x) % 64] as bool;
-                            self.v[0xF] = 1;
+                        if row & ((0x80 >> x as u8)) != 0 {
+                            flipped |= self.pixels[(sprite_h as usize + y as usize) % 32]
+                                [(sprite_x as usize + x as usize) % 64] as bool;
                             self.pixels[(sprite_y as usize + y as usize) % 32]
-                                [(sprite_x as usize + x) % 64] ^= true;
+                                [(sprite_x as usize + x as usize) % 64] ^= true;
                             self.v[0xF] = flipped as u8;
                             display.draw_flag = true;
                         }
                     }
                 }
-                self.pc += 2;
-                 */
-                for y in 0..sprite_h {
-                    let row = self.memory[self.i as usize + y] as u16;
-                    for x in 0..8 {
-                        if row & ((0x80 >> x as u8)) != 0 {
-                            flipped |= self.pixels[(sprite_h + y) % 32]
-                                [(sprite_x + x) % 64] as bool;
-                            self.pixels[(sprite_y + y) % 32]
-                                [(sprite_x + x) % 64] ^= true;
-                            self.v[0xF] = flipped as u8;
-                            display.draw_flag = true;
-                        }
-                    }
+                if display.draw_flag == true {
+                    display.draw(&self.pixels);
                 }
                 self.pc += 2;
 

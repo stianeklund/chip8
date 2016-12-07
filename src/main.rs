@@ -37,7 +37,7 @@ fn main() {
     let mut display = Display::new(&sdl_context);
 
     // Frame timing
-    let interval = 1_000 / 60;
+    let interval = 1 / 60;
     let mut before = timer.ticks();
     let mut last_second = timer.ticks();
     let mut fps = 0u16;
@@ -64,7 +64,7 @@ fn main() {
             fps = 0;
         }
         cpu.step(&mut display);
-        display.draw(&cpu.pixels);
+        // display.draw(&cpu.pixels);
         cpu.update_timers();
 
         // Iterate over eventpump & wait for Esc
