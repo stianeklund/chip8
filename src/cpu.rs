@@ -33,17 +33,17 @@ const FONT: [u8; 80] = [
 
 pub struct Cpu {
     opcode: u16,
-    memory: [u8; 4096],             // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
-    v: [u8; 16],                    // 8-bit general purpose register, (V0 - VE*).
-    i: u16,                         // Index register (start at 0x200)
-    pc: u16,                        // Program Counter. Jump to 0x200 on RST
-    stack: [u16; 16],               // Interpreter returns to value when done with subroutine
-    sp: u16,                        // Stack pointer
-    delay_timer: u8,                // 8-bit Delay Timer
-    sound_timer: u8,                // 8-bit Sound Timer
-    pub draw_flag: bool,            // 0x00E0 CLS
-    pub pixels: [[bool; 64 as usize]; 32 as usize], // For rendering
-    pub keypad: [u16; 16]           // Keypad is HEX based(0x0-0xF)
+    memory: [u8; 4096],           // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
+    v: [u8; 16],                  // 8-bit general purpose register, (V0 - VE*).
+    i: u16,                       // Index register (start at 0x200)
+    pc: u16,                      // Program Counter. Jump to 0x200 on RST
+    stack: [u16; 16],             // Interpreter returns to value when done with subroutine
+    sp: u16,                      // Stack pointer
+    delay_timer: u8,              // 8-bit Delay Timer
+    sound_timer: u8,              // 8-bit Sound Timer
+    pub draw_flag: bool,          // 0x00E0 CLS
+    pub pixels: [[bool; 64]; 32], // For rendering
+    pub keypad: [u16; 16]         // Keypad is HEX based(0x0-0xF)
     // * VF is a special register used to store overflow bit
 }
 
@@ -67,7 +67,7 @@ impl Cpu {
             delay_timer: 0,
             sound_timer: 0,
             draw_flag: true,
-            pixels: [[false; 64 as usize]; 32 as usize],
+            pixels: [[false; 64]; 32],
             keypad: [0; 16]
         }
     }
@@ -115,18 +115,20 @@ impl Cpu {
         (self.memory[self.pc as usize + 1] as u16);
 
         // Decode Vx & Vy register identifiers.
-        let x = ((self.opcode & 0x0F00) as usize) >> 8; // Bitshift right to get 0x4
+        let x = ((self.opcode & 0x0F00) as u16) >> 8; // Bitshift right to get 0x4
         let y = ((self.opcode & 0x00F0) as u8) >> 4;    // Original value is 0x40
-        // let n = (self.opcode & 0x000F) as u8;        // nibble 4-bit value
 
-        let nn = self.opcode & 0x00FF;                  // 8 bit constant u16
+        // let x = self.opcode & 0x0F00  >> 8; // Bitshift right to get 0x4
+        // let y = self.opcode & 0x00F0  >> 4;    // Original value is 0x40
+        // let n = self.opcode & 0x000F;        // nibble 4-bit value
+        // let nn = self.opcode & 0x00FF;                  // 8 bit constant u16
+
         let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
-
         if DEBUG {
-        println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X},  | Stack: {:?}",
-                 self.pc, self.opcode, self.i, self.stack);
+            println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X},  | Stack: {:?}",
+                     self.pc, self.opcode, self.i, self.stack);
         }
 
         // TODO: Move opcodes into separate method
@@ -137,7 +139,6 @@ impl Cpu {
                 match self.opcode {
                     // 00E0 CLS
                     0x00E0 => {
-                        // Set all pixels to 0
                         display.clear();
                         self.draw_flag = true;
                         self.pc += 2;
@@ -168,17 +169,16 @@ impl Cpu {
                 self.sp += 1;
                 self.pc = nnn;
             },
-            // 3XKK Skip next instruction if Vx = nn
+            // 3XKK Skip next instruction if Vx = kk
             0x3000 => {
-                if self.v[x as usize] == nn as u8 {
+                if self.v[x as usize] == kk as u8 {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
                 }
             },
-            // 4XKK Skip next instruction if Vx != nn
+            // 4XKK Skip next instruction if Vx != kk
             0x4000 => {
-                // self.opcode & 0x00FF;
                 if self.v[x as usize] != kk as u8 {
                     self.pc += 4;
                 } else {
@@ -201,7 +201,7 @@ impl Cpu {
             // 7XKK Add value kk to Vx
             0x7000 => {
                 // Wrapping (modular) addition, prevents add overflow
-                self.v[x] = self.v[x].wrapping_add(kk as u8) as u8;
+                self.v[x as usize] = self.v[x as usize].wrapping_add(kk as u8);
                 self.pc += 2;
             },
 
@@ -213,14 +213,15 @@ impl Cpu {
                 },
                 // 8XY1 Set Vx to Vx OR Vy
                 0x0001 => {
-                self.v[x as usize] = self.v[x as usize] | self.v[y as usize];
-                self.pc += 2;
+                    self.v[x as usize] = self.v[x as usize] | self.v[y as usize];
+                    self.pc += 2;
 
                 },
                 // 8XY2 Set Vx to Vx OR Vy
                 0x0002 => {
                     self.v[x as usize] = self.v[x as usize] & self.v[y as usize];
                     self.pc += 2;
+                    // self.pc = self.pc + 2 & nnn;
                 },
                 // 8XY3 Set Vx to Vx XOR Vy
                 0x0003 => {
@@ -230,27 +231,28 @@ impl Cpu {
                 // 8XY4 Set Vx = Vx + Vy, set VF = carry
                 0x0004 => {
                     if self.v[y as usize] > (0xFF - self.v[x as usize]) {
-                        self.v[0xF]  = 1; // Set carry (also used for pixel flip)
+                        self.v[0x0F]  = 1; // Set carry (also used for pixel flip)
                     } else {
-                        self.v[0xF] = 0;
+                        self.v[0x0F] = 0;
                     }
-                    self.v[x as usize] += self.v[y as usize];
+                    self.v[x as usize] = self.v[x as usize].wrapping_add(self.v[y as usize]);
                     self.pc += 2;
                 },
                 // 8XY5 Set Vx = Vx - Vy, set VF = NOT borrow
                 0x0005 => {
                     if self.v[x as usize] > self.v[y as usize] {
-                        self.v[0xF] = 1; // VF set to not borrow
+                        self.v[0x0F] = 1; // VF set to not borrow
                     } else {
-                        self.v[0xF] = 0;
+                        self.v[0x0F] = 0;
                     }
-                    // self.v[x] = self.v[x as usize] - self.v[y as usize];
+                    self.v[x as usize] = self.v[x as usize] - self.v[y as usize];
                     self.pc += 2;
                 },
                 // 8XY6 Vx = Vx Shift right by 1 If the least-significant bit of
                 // Vx is 1 then VF is set to 1, otherwise 0. Then Vx is divided by 2
                 0x0006 => {
-                    self.v[0xF] = self.v[x as usize] & 0x1;
+                    let lsb = self.v[x as usize] << 7 >> 7;
+                    self.v[0xF] = lsb;
                     self.v[x as usize] >>= 1;
                     self.pc += 2;
                 },
@@ -289,40 +291,64 @@ impl Cpu {
             // BNNN Jump to address NNN + V0
             0xB000 => {
                 self.pc = nnn + self.v[0x0] as u16;
-                // self.pc = self.v[0x0] as u16 + nnn;
                 // Should self.pc be incremented here? Isn't this a subroutine call?
                 // self.pc += 2;
             },
-            // CXNN Set Vx to a random number masked by NN
+            // CXNN Set Vx to a random number masked by kk
             0xC000 => {
                 let mut rng = rand::thread_rng();
                 let random_number: u8 = rng.gen::<u8>();
-                self.v[x as usize] = random_number as u8 & nn as u8;
+
+                self.v[x as usize] = random_number as u8 & kk as u8;
                 self.pc += 2;
             },
+
             // DXYN Draw to display
-            // TODO: Move into spearate function
+            // Draw sprite starting at x, y which is n lines of 8 pixels stored
+            // starting at memory location of self.i
             0xD000 => {
-                let x_index = self.v[(self.opcode << 4 >> 12) as usize] as usize;
-                let y_index = self.v[(self.opcode << 8 >> 12) as usize] as usize;
-                let height = (self.opcode << 12 >> 12) as usize;
+                // let sprite_x = self.opcode & 0x0F00 >> 8 as u16;
+                // let sprite_y = self.opcode & 0x00F0 >> 4 as u16;
+                // let sprite_h = (self.opcode & 0x000F) as u16;
+
+                let sprite_x = self.v[(self.opcode << 4 >> 12) as usize] as usize;
+                let sprite_y = self.v[(self.opcode << 8 >> 12) as usize] as usize;
+                let sprite_h = (self.opcode << 12 >> 12) as usize;
 
                 let mut flipped = false;
+                self.v[0xF] = 0;
 
-                for y in 0..height {
-                    let row = self.memory[self.i as usize + y] as u16;
+                /*for y in 0..sprite_h {
+                    let byte = self.memory[self.i as usize + y as usize];
                     for x in 0..8 {
-                        if row & ((0x80 >> x as u8)) != 0 {
-                            flipped |= self.pixels[(y_index + y) % 32]
-                                [(x_index + x) % 64] as bool;
-                            self.pixels[(y_index + y) % 32]
-                                [(x_index + x) % 64] ^= true;
+                        if byte & ((0x80 >> x as u8)) != 0 {
+                            flipped |= self.pixels[(sprite_y as usize + y as usize) % 32]
+                                [(sprite_x as usize + x) % 64] as bool;
+                            self.v[0xF] = 1;
+                            self.pixels[(sprite_y as usize + y as usize) % 32]
+                                [(sprite_x as usize + x) % 64] ^= true;
                             self.v[0xF] = flipped as u8;
                             display.draw_flag = true;
                         }
                     }
                 }
                 self.pc += 2;
+                 */
+                for y in 0..sprite_h {
+                    let row = self.memory[self.i as usize + y] as u16;
+                    for x in 0..8 {
+                        if row & ((0x80 >> x as u8)) != 0 {
+                            flipped |= self.pixels[(sprite_h + y) % 32]
+                                [(sprite_x + x) % 64] as bool;
+                            self.pixels[(sprite_y + y) % 32]
+                                [(sprite_x + x) % 64] ^= true;
+                            self.v[0xF] = flipped as u8;
+                            display.draw_flag = true;
+                        }
+                    }
+                }
+                self.pc += 2;
+
             },
             0xE000 => match self.opcode & 0x00FF {
                 // EX9E Skip next instruction if key stored in Vx is pressed
@@ -390,6 +416,8 @@ impl Cpu {
                 // Chars 0-F are represented by a 4x5 font
                 // Each character contains 5 elements
                 // Create 0x5 font accessible in memory
+
+                // TODO: Investigate this
                 0x0029 => {
                     self.i = (self.v[x as usize] * 0x5) as u16;
                     self.pc += 2;
@@ -408,16 +436,16 @@ impl Cpu {
                 },
                 // FX55 Stores V0 to VX in memory starting at I
                 0x0055 => {
-                    for x in 0..(x + 1) {
-                        self.memory[self.v[x] as usize] = self.memory[self.v[x] as usize + x];
+                    for index in 0..x+1 {
+                        self.memory[self.i as usize + index as usize] = self.v[index as usize];
                     }
                          self.pc += 2;
                 },
                 // FX65 Fills V0 to VX with values from memory starting at I
                 0x0065 => {
-                    for x in 0..(x + 1) {
-                        self.memory[self.v[x] as usize] = self.memory[self.v[x] as usize + x];
-                    }
+                    for index in 0..x+1 {
+                        self.memory[(self.i as usize) + index as usize] = self.v[index as usize];
+                    };
                     self.pc += 2;
                 },
                 _ => println!("Unknown opcode: {:X}", self.opcode),

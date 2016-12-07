@@ -53,8 +53,8 @@ fn main() {
                 timer.delay(interval - dt);
                 if DEBUG {
                     println!("Time elapsed since last frame is too small");
-                    continue;
                 }
+                continue;
                 before = now;
                 fps += 1;
             if now - last_second < 1_000 {
