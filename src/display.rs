@@ -35,9 +35,9 @@ impl<'a> Display<'a> {
         }
     }
 
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self, pixels: &[[bool; 64]; 32]) {
+        self.pixels = [[true; 64]; 32];
         self.draw_flag = true;
-        self.pixels = [[false; 64]; 32];
     }
 
     pub fn draw(&mut self, pixels: &[[bool; 64]; 32]) {
@@ -55,6 +55,6 @@ impl<'a> Display<'a> {
             }
         }
         self.renderer.present();
-        self.draw_flag = true;
+        // self.draw_flag = true;
     }
 }
