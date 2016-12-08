@@ -51,22 +51,12 @@ fn main() {
         let dt = now - before;
         // let elapsed = dt as f64 / 1_000.0;
 
-            if dt < interval {
-                timer.delay(interval - dt);
-                if DEBUG {
-                    println!("Time elapsed since last frame is too small");
-                }
-
-                before = now;
-                fps += 1;
-
-            if now - last_second < 1_000 {
-                println!("FPS: {}", fps);
+        if dt < interval {
+            timer.delay(interval - dt);
+            if DEBUG {
+                println!("Time elapsed since last frame is too small");
             }
-
-            last_second = now;
-            fps = 0;
-            }
+        }
 
         match keypad.key_press(&mut cpu.keypad) {
             keypad::State::Exit => break 'step,
@@ -74,7 +64,7 @@ fn main() {
         }
 
         cpu.step(&mut display);
-        display.draw(&cpu.pixels);
+        //display.draw(&cpu.pixels);
         cpu.update_timers();
 
         }
