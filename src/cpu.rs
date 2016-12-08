@@ -43,7 +43,7 @@ pub struct Cpu {
     sound_timer: u8,              // 8-bit Sound Timer
     pub draw_flag: bool,          // 0x00E0 CLS
     pub pixels: [[bool; 64]; 32], // For rendering
-    pub keypad: [u16; 16]         // Keypad is HEX based(0x0-0xF)
+    pub keypad: [u8; 16],       // Keypad is HEX based(0x0-0xF)
     // * VF is a special register used to store overflow bit
 }
 
@@ -127,8 +127,8 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if DEBUG {
-            println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X},  | Stack: {:?}",
-                     self.pc, self.opcode, self.i, self.stack);
+            println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X},  | Stack: {:?}, Keypad: {}",
+                     self.pc, self.opcode, self.i, self.stack, self.keypad[x as usize]);
         }
 
         // TODO: Move opcodes into separate method
@@ -164,7 +164,7 @@ impl Cpu {
             0x1000 => {
                 self.pc = nnn;
             },
-            // 2NNN Jump to subroutine at address nnn
+            // 2NNN Call subroutine at address nnn
             0x2000 => {
                 self.stack[self.sp as usize] = self.pc;
                 self.sp += 1;
@@ -293,7 +293,8 @@ impl Cpu {
             0xB000 => {
                 self.pc = nnn + self.v[0x0] as u16;
                 // Should self.pc be incremented here? Isn't this a subroutine call?
-                // self.pc += 2;
+                println!("BNNN {}", self.pc);
+                self.pc += 2;
             },
             // CXNN Set Vx to a random number masked by kk
             0xC000 => {
@@ -333,9 +334,8 @@ impl Cpu {
                         }
                     }
                 }
-                if display.draw_flag == true {
-                    display.draw(&self.pixels);
-                }
+                // if self.v[0xF] == 0 {
+                  //  display.draw(&self.pixels);
                 self.pc += 2;
 
             },
@@ -370,19 +370,14 @@ impl Cpu {
                 // FX0A Key press awaited then stored in Vx
                 // All instructions halted until next key event
                 0x000A => {
-                    // TODO: Implement keypress
-                    let mut keypad_press = false;
-                    // Keypad is 0 - 16 values
                     for i in 0..16 {
-                        if self.keypad[i] != 0 { // key is pressed
+                        if self.keypad[i as usize] != 0 {
                             self.v[x as usize] = i as u8;
-                            keypad_press = true;
+                            self.pc += 2;
+                            break;
                         }
                     }
-                    if !keypad_press  {
-                        return;
-                    }
-                    self.pc += 2;
+
                 },
                 // FX15 Set delay timer
                 0x0015 => {
@@ -428,13 +423,15 @@ impl Cpu {
                     for index in 0..x+1 {
                         self.memory[self.i as usize + index as usize] = self.v[index as usize];
                     }
-                         self.pc += 2;
+                    // self.i = self.i + x + 1;
+                    self.pc += 2;
                 },
                 // FX65 Fills V0 to VX with values from memory starting at I
                 0x0065 => {
                     for index in 0..x+1 {
                         self.memory[(self.i as usize) + index as usize] = self.v[index as usize];
-                    };
+                    }
+                    // self.i = self.i + x + 1;
                     self.pc += 2;
                 },
                 _ => println!("Unknown opcode: {:X}", self.opcode),

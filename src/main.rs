@@ -6,9 +6,9 @@ extern crate rand;
 use std::env;
 mod cpu;
 mod display;
+mod keypad;
+
 use display::Display;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
 
 const DEBUG: bool = false;
 
@@ -27,17 +27,19 @@ fn main() {
 
     // SDL2 context
     let sdl_context = sdl2::init().expect("sdl2 init failed in main");
-    let mut event_pump = sdl_context.event_pump().unwrap();
     let mut timer = sdl_context.timer().unwrap();
 
     // Load rom (TODO: check size)
     cpu.load_bin(bin);
 
+    // Initialize Keyboard
+    let mut keypad = keypad::Keypad::new(&sdl_context);
+
     // Initialize SDL Window
     let mut display = Display::new(&sdl_context);
 
     // Frame timing
-    let interval = 1 / 60;
+    let interval = 1_000 / 60;
     let mut before = timer.ticks();
     let mut last_second = timer.ticks();
     let mut fps = 0u16;
@@ -54,28 +56,26 @@ fn main() {
                 if DEBUG {
                     println!("Time elapsed since last frame is too small");
                 }
-                continue;
+
                 before = now;
                 fps += 1;
+
             if now - last_second < 1_000 {
                 println!("FPS: {}", fps);
             }
+
             last_second = now;
             fps = 0;
+            }
+
+        match keypad.key_press(&mut cpu.keypad) {
+            keypad::State::Exit => break 'step,
+            keypad::State::Continue => {}
         }
+
         cpu.step(&mut display);
-        // display.draw(&cpu.pixels);
+        display.draw(&cpu.pixels);
         cpu.update_timers();
 
-        // Iterate over eventpump & wait for Esc
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit {..} |
-                // TODO Implement keyboard
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
-                    break 'step,
-                _ => {}
-            }
         }
-    }
 }
