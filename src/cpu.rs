@@ -111,6 +111,7 @@ impl Cpu {
     /// All instructions are 2 bytes long & are stored most-significant-byte first
     /// One opcode is 2 bytes long. Fetch 2 bytes and merge them
     pub fn step(&mut self, display: &mut Display) {
+
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 |
         (self.memory[self.pc as usize + 1] as u16);
 
@@ -127,8 +128,8 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if DEBUG {
-            println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X},  | Stack: {:?}, Keypad: {}",
-                     self.pc, self.opcode, self.i, self.stack, self.keypad[x as usize]);
+            println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X}",
+                     self.pc, self.opcode, self.i);
         }
 
         // TODO: Move opcodes into separate method
@@ -139,9 +140,7 @@ impl Cpu {
                 match self.opcode {
                     // 00E0 CLS
                     0x00E0 => {
-                        display.clear();
-                        self.pixels = [[false; 64]; 32];
-                        self.draw_flag = true;
+                        display.clear(&[[false; 64]; 32]);
                         self.pc += 2;
                     },
 
@@ -294,7 +293,7 @@ impl Cpu {
                 self.pc = nnn + self.v[0x0] as u16;
                 // Should self.pc be incremented here? Isn't this a subroutine call?
                 println!("BNNN {}", self.pc);
-                self.pc += 2;
+                // self.pc += 2;
             },
             // CXNN Set Vx to a random number masked by kk
             0xC000 => {
@@ -318,24 +317,26 @@ impl Cpu {
                 let sprite_h = (self.opcode << 12 >> 12) as usize;
 
                 println!("Sprite values: X: {}, Y:{}, H:{}", sprite_x, sprite_y, sprite_h);
-                let mut flipped = false;
-                self.v[0xF] = 0;
+                let mut collision = false;
 
                 for y in 0..sprite_h {
                     let row = self.memory[self.i as usize + y as usize] as u16;
                     for x in 0..8 {
-                        if row & ((0x80 >> x as u8)) != 0 {
-                            flipped |= self.pixels[(sprite_h as usize + y as usize) % 32]
+                        if row & ((0x80 >> x as usize)) != 0 {
+                            collision|= self.pixels[(sprite_h as usize + y as usize) % 32]
                                 [(sprite_x as usize + x as usize) % 64] as bool;
-                            self.pixels[(sprite_y as usize + y as usize) % 32]
-                                [(sprite_x as usize + x as usize) % 64] ^= true;
-                            self.v[0xF] = flipped as u8;
-                            display.draw_flag = true;
-                        }
+                        self.pixels[(sprite_y as usize + y as usize) % 32]
+                            [(sprite_x as usize + x as usize) % 64] ^= true;
+                        self.v[0xF] = collision as u8;
+                            if collision == true {
+                                self.v[0xF] = 1;
+                            };
+                        println!("Collision: {}", self.v[0xF]);
+                        display.draw_flag = true;
                     }
                 }
-                // if self.v[0xF] == 0 {
-                  //  display.draw(&self.pixels);
+            }
+                display.draw(&self.pixels);
                 self.pc += 2;
 
             },
@@ -369,15 +370,17 @@ impl Cpu {
 
                 // FX0A Key press awaited then stored in Vx
                 // All instructions halted until next key event
+                // Iterate through all possibilities up to 0xF
                 0x000A => {
-                    for i in 0..16 {
+                    for i in 0..0xF {
                         if self.keypad[i as usize] != 0 {
+                            println!("Key pressed: {:?}", self.keypad);
                             self.v[x as usize] = i as u8;
-                            self.pc += 2;
                             break;
                         }
                     }
 
+                    self.pc += 2;
                 },
                 // FX15 Set delay timer
                 0x0015 => {
