@@ -7,7 +7,7 @@ use std::env;
 mod cpu;
 mod display;
 mod keypad;
-
+use std::thread::sleep_ms;
 use display::Display;
 
 const DEBUG: bool = false;
@@ -67,5 +67,6 @@ fn main() {
         //display.draw(&cpu.pixels);
         cpu.update_timers();
 
+        sleep_ms(10);
         }
 }
