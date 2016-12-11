@@ -7,7 +7,9 @@ use std::env;
 mod cpu;
 mod display;
 mod keypad;
-use std::thread::sleep_ms;
+use std::thread::sleep;
+use std::time::Duration;
+
 use display::Display;
 
 const DEBUG: bool = false;
@@ -44,6 +46,7 @@ fn main() {
     let mut last_second = timer.ticks();
     let mut fps = 0u16;
 
+    let ms = Duration::from_millis(10);
     // CPU execution cycle
     'step: loop {
         // Timing second instance
@@ -64,9 +67,9 @@ fn main() {
         }
 
         cpu.step(&mut display);
-        //display.draw(&cpu.pixels);
+        display.draw(&cpu.pixels);
         cpu.update_timers();
 
-        sleep_ms(10);
+        sleep(ms);
         }
 }
