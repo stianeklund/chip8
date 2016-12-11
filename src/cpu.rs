@@ -116,11 +116,11 @@ impl Cpu {
         (self.memory[self.pc as usize + 1] as u16);
 
         // Decode Vx & Vy register identifiers.
-        let x = ((self.opcode & 0x0F00) as u16) >> 8;   // Bitshift right to get 0x4
-        let y = ((self.opcode & 0x00F0) as u8) >> 4;    // Original value is 0x40
+        // let x = (self.opcode & 0x0F00) as usize >> 8 as usize;
+        // let y = (self.opcode & 0x00F0) as usize  >> 4 as usize;
+        let   x:  u8 = ((self.opcode & 0x0F00) >> 8) as u8;
+        let   y:  u8 = ((self.opcode & 0x00F0) >> 4) as u8;
 
-        // let x = self.opcode & 0x0F00  >> 8;          // Bitshift right to get 0x4
-        // let y = self.opcode & 0x00F0  >> 4;          // Original value is 0x40
         // let n = self.opcode & 0x000F;                // nibble 4-bit value
         // let nn = self.opcode & 0x00FF;               // 8 bit constant u16
 
@@ -128,8 +128,8 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if DEBUG {
-            println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X}",
-                     self.pc, self.opcode, self.i);
+            println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X}, NN:{:X}, Vx: {:X}",
+                     self.pc, self.opcode, self.i, kk, self.v[x as usize]);
         }
 
         // TODO: Move opcodes into separate method
@@ -140,7 +140,7 @@ impl Cpu {
                 match self.opcode {
                     // 00E0 CLS
                     0x00E0 => {
-                        display.clear(&[[false; 64]; 32]);
+                        // display.clear(&[[false; 64]; 32]);
                         self.pc += 2;
                     },
 
@@ -230,20 +230,21 @@ impl Cpu {
                 },
                 // 8XY4 Set Vx = Vx + Vy, set VF = carry
                 0x0004 => {
-                    if self.v[y as usize] > (0xFF - self.v[x as usize]) {
-                        self.v[0x0F]  = 1; // Set carry (also used for pixel flip)
+                    let val = (self.v[x as usize] as u16) + (self.v[y as usize] as u16);
+                    if val > 255 {
+                        self.v[0xF] = 1;
                     } else {
-                        self.v[0x0F] = 0;
+                        self.v[0xF] = 0;
                     }
-                    self.v[x as usize] = self.v[x as usize].wrapping_add(self.v[y as usize]);
+                    self.v[x as usize] = val as u8;
                     self.pc += 2;
                 },
                 // 8XY5 Set Vx = Vx - Vy, set VF = NOT borrow
                 0x0005 => {
                     if self.v[x as usize] > self.v[y as usize] {
-                        self.v[0x0F] = 1; // VF set to not borrow
+                        self.v[0xF] = 1; // VF set to not borrow
                     } else {
-                        self.v[0x0F] = 0;
+                        self.v[0xF] = 0;
                     }
                     self.v[x as usize] = self.v[x as usize] - self.v[y as usize];
                     self.pc += 2;
@@ -291,14 +292,14 @@ impl Cpu {
             // BNNN Jump to address NNN + V0
             0xB000 => {
                 self.pc = nnn + self.v[0x0] as u16;
-                // Should self.pc be incremented here? Isn't this a subroutine call?
                 println!("BNNN {}", self.pc);
+                // Should self.pc be incremented here? Isn't this a subroutine call?
                 // self.pc += 2;
             },
             // CXNN Set Vx to a random number masked by kk
             0xC000 => {
                 let mut rng = rand::thread_rng();
-                let random_number: u8 = rng.gen::<u8>();
+                let random_number: u8 = rng.gen_range(0, 255);
 
                 self.v[x as usize] = random_number as u8 & kk as u8;
                 self.pc += 2;
@@ -308,35 +309,33 @@ impl Cpu {
             // Draw sprite starting at x, y which is n lines of 8 pixels stored
             // starting at memory location of self.i
             0xD000 => {
-               // let sprite_x = self.opcode as usize & 0x0F00 >> 8 as usize;
-               // let sprite_y = self.opcode as usize & 0x00F0 >> 4 as usize;
-               // let sprite_h = (self.opcode as usize & 0x000F) as usize;
+                let sprite_x = self.v[x as usize];
+                let sprite_y = self.v[y as usize];
+                let sprite_h = self.opcode & 0x000F;
+                self.v[0xF] = 0;
 
-                let sprite_x = self.v[(self.opcode << 4 >> 12) as usize] as usize;
-                let sprite_y = self.v[(self.opcode << 8 >> 12) as usize] as usize;
-                let sprite_h = (self.opcode << 12 >> 12) as usize;
+               // let sprite_x = self.v[(self.opcode << 4 >> 12) as usize] as usize;
+               // let sprite_y = self.v[(self.opcode << 8 >> 12) as usize] as usize;
+               // let sprite_h = (self.opcode << 12 >> 12) as usize;
 
                 println!("Sprite values: X: {}, Y:{}, H:{}", sprite_x, sprite_y, sprite_h);
                 let mut collision = false;
 
-                for y in 0..sprite_h {
-                    let row = self.memory[self.i as usize + y as usize] as u16;
+                for j in 0..sprite_h {
+                    let row = self.memory[(self.i + j) as usize] as u16;
                     for x in 0..8 {
                         if row & ((0x80 >> x as usize)) != 0 {
-                            collision|= self.pixels[(sprite_h as usize + y as usize) % 32]
+                            collision|= self.pixels[(sprite_h as usize + j as usize) % 32]
                                 [(sprite_x as usize + x as usize) % 64] as bool;
-                        self.pixels[(sprite_y as usize + y as usize) % 32]
+                        self.pixels[(sprite_y as usize + j as usize) % 32]
                             [(sprite_x as usize + x as usize) % 64] ^= true;
                         self.v[0xF] = collision as u8;
-                            if collision == true {
-                                self.v[0xF] = 1;
-                            };
                         println!("Collision: {}", self.v[0xF]);
-                        display.draw_flag = true;
                     }
                 }
             }
-                display.draw(&self.pixels);
+                // display.draw(&self.pixels);
+                display.draw_flag = true;
                 self.pc += 2;
 
             },
@@ -414,7 +413,6 @@ impl Cpu {
                 // the tens digit at location I+1, and the ones digit at location I+2.
 
                 0x0033 => {
-                    // TODO  Decimal representation
                     let i = self.i as usize;
                     self.memory[i] = self.v[x as usize] / 100;
                     self.memory[i + 1] = (self.v[x as usize] / 10) % 10;
@@ -426,7 +424,6 @@ impl Cpu {
                     for index in 0..x+1 {
                         self.memory[self.i as usize + index as usize] = self.v[index as usize];
                     }
-                    // self.i = self.i + x + 1;
                     self.pc += 2;
                 },
                 // FX65 Fills V0 to VX with values from memory starting at I
@@ -434,7 +431,6 @@ impl Cpu {
                     for index in 0..x+1 {
                         self.memory[(self.i as usize) + index as usize] = self.v[index as usize];
                     }
-                    // self.i = self.i + x + 1;
                     self.pc += 2;
                 },
                 _ => println!("Unknown opcode: {:X}", self.opcode),
