@@ -347,12 +347,13 @@ impl Cpu {
                     let row = self.memory[(self.i + j as u16) as usize];
                     for i in 0..8 {
                         if row & (0x80 >> i) != 0 {
-                            collision = self.pixels[(sprite_y as usize + j as usize) % 64]
-                                [(sprite_x as usize + i as usize) % 64] as bool;
-
+                            if self.pixels[(sprite_y as usize + j as usize) % 64]
+                                [(sprite_x as usize + i as usize) % 64] {
+                                    collision = true;
+                                    self.v[0xF] = collision as u8;
+                                }
                             self.pixels[(sprite_y as usize + j as usize) % 32]
                                 [(sprite_x as usize + i as usize) % 64] ^= true;
-                            self.v[0xF] = collision as u8;
                         }
                     }
                 }
