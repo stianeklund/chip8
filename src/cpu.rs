@@ -7,7 +7,7 @@ use rand;
 use rand::Rng;
 use display::Display;
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
@@ -102,7 +102,9 @@ impl Cpu {
         }
         if self.sound_timer > 0 {
             if self.sound_timer == 1 {
-                println!("Beep!");
+                if DEBUG {
+                    println!("Beep!");
+                }
             }
             self.sound_timer -= 1;
         }
@@ -118,7 +120,6 @@ impl Cpu {
                       (self.memory[self.pc as usize + 1] as u16);
 
         // Decode Vx & Vy register identifiers.
-
         let x: u8 = ((self.opcode & 0x0F00) >> 8) as u8;
         let y: u8 = ((self.opcode & 0x00F0) >> 4) as u8;
 
@@ -167,12 +168,14 @@ impl Cpu {
             0x1000 => {
                 self.pc = nnn;
             }
+
             // 2NNN Call subroutine at address nnn
             0x2000 => {
                 self.stack[self.sp as usize] = self.pc;
                 self.sp += 1;
                 self.pc = nnn;
             }
+
             // 3XKK Skip next instruction if Vx = kk
             0x3000 => {
                 if self.v[x as usize] == kk as u8 {
@@ -189,6 +192,7 @@ impl Cpu {
                     self.pc += 2;
                 }
             }
+
             // 5XY0 Skip next instruction if Vx = Vy
             0x5000 => {
                 if self.v[x as usize] == self.v[y as usize] {
@@ -197,11 +201,13 @@ impl Cpu {
                     self.pc += 2;
                 }
             }
+
             // 6XKK Set Vx = kk. Put value of kk in to Vx register
             0x6000 => {
                 self.v[x as usize] = kk as u8;
                 self.pc += 2;
             }
+
             // 7XKK Add value kk to Vx
             0x7000 => {
                 // Wrapping (modular) addition, prevents add overflow
@@ -216,34 +222,41 @@ impl Cpu {
                         self.v[x as usize] = self.v[y as usize];
                         self.pc += 2;
                     }
+
                     // 8XY1 Set Vx to Vx OR Vy
                     0x0001 => {
                         self.v[x as usize] = self.v[x as usize] | self.v[y as usize];
                         self.pc += 2;
 
                     }
+
                     // 8XY2 Set Vx to Vx OR Vy
                     0x0002 => {
                         self.v[x as usize] = self.v[x as usize] & self.v[y as usize];
                         self.pc += 2;
                         // self.pc = self.pc + 2 & nnn;
                     }
+
                     // 8XY3 Set Vx to Vx XOR Vy
                     0x0003 => {
                         self.v[x as usize] = self.v[x as usize] ^ self.v[y as usize];
                         self.pc += 2;
                     }
+
                     // 8XY4 Set Vx = Vx + Vy, set VF = carry
                     0x0004 => {
                         let val = (self.v[x as usize] as u16) + (self.v[y as usize] as u16);
+
                         if val > 255 {
                             self.v[0xF] = 1;
                         } else {
                             self.v[0xF] = 0;
                         }
+
                         self.v[x as usize] = val as u8;
                         self.pc += 2;
                     }
+
                     // 8XY5 Set Vx = Vx - Vy, set VF = NOT borrow
                     0x0005 => {
                         if self.v[x as usize] > self.v[y as usize] {
@@ -251,9 +264,11 @@ impl Cpu {
                         } else {
                             self.v[0xF] = 0;
                         }
+
                         self.v[x as usize] = self.v[x as usize].wrapping_sub(self.v[y as usize]);
                         self.pc += 2;
                     }
+
                     // 8XY6 Vx = Vx Shift right by 1 If the least-significant bit of
                     // Vx is 1 then VF is set to 1, otherwise 0. Then Vx is divided by 2
                     0x0006 => {
@@ -263,6 +278,7 @@ impl Cpu {
 
                         self.pc += 2;
                     }
+
                     // 8XY7 Set Vx = Vy - Vx, VF NOT borrow
                     0x0007 => {
                         if self.v[y as usize] > self.v[x as usize] {
@@ -272,6 +288,7 @@ impl Cpu {
                         }
                         self.pc += 2;
                     }
+
                     // 8XYE
                     // If the most-significant bit of Vx is 1 then VF is set to 1
                     // Otherwise VF is set to 0 and Vx is multiplied by 2.
@@ -283,6 +300,7 @@ impl Cpu {
                     _ => println!("Unknown opcode [0x8000], {:X}", self.opcode),
                 }
             }
+
             // 9XY0 Skip next instruction if Vx != Vy
             0x9000 => {
                 if self.v[x as usize] != self.v[y as usize] {
@@ -299,10 +317,8 @@ impl Cpu {
             // BNNN Jump to address NNN + V0
             0xB000 => {
                 self.pc = nnn + self.v[0x0] as u16;
-                println!("BNNN {}", self.pc);
-                // Should self.pc be incremented here? Isn't this a subroutine call?
-                // self.pc += 2;
             }
+
             // CXNN Set Vx to a random number masked by kk
             0xC000 => {
                 let mut rng = rand::thread_rng();
@@ -321,7 +337,9 @@ impl Cpu {
                 let sprite_h = self.opcode & 0x000F;
                 self.v[0xF] = 0;
 
-                println!("X {}, Y:{},H:{}", sprite_x, sprite_y, sprite_h);
+                if DEBUG {
+                    println!("X {}, Y:{},H:{}", sprite_x, sprite_y, sprite_h);
+                }
 
                 let mut collision = false;
 
