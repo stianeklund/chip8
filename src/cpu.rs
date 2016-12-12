@@ -7,7 +7,7 @@ use rand;
 use rand::Rng;
 use display::Display;
 
-const DEBUG: bool = false;
+const DEBUG: bool = true;
 
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
@@ -82,7 +82,7 @@ impl Cpu {
         let mut buf = Vec::new();
         match file.read_to_end(&mut buf) {
             Ok(buf) => buf,
-            Err(e) => panic!("Oh no: {}", e),
+            Err(e) => panic!("Read file failed: {}", e),
         };
 
         let buf_size = buf.len();
@@ -126,8 +126,8 @@ impl Cpu {
         // let n = self.opcode & 0x000F;                // nibble 4-bit value
         // let nn = self.opcode & 0x00FF;               // 8 bit constant u16
 
-        let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
-        let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
+        let nnn: u16 = self.opcode & 0x0FFF as u16;                 // addr 12-bit value
+        let kk: u16 = self.opcode & 0x00FF as u16;                  // u8, byte 8-bit value
 
         if DEBUG {
             println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X}, NN:{:X}, Vx: {:X}",
