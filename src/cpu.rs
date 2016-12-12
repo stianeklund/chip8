@@ -115,27 +115,26 @@ impl Cpu {
     /// All instructions are 2 bytes long & are stored most-significant-byte first
     /// One opcode is 2 bytes long. Fetch 2 bytes and merge them
     pub fn step(&mut self, display: &mut Display) {
-
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 |
                       (self.memory[self.pc as usize + 1] as u16);
 
         // Decode Vx & Vy register identifiers.
-        let x: u8 = ((self.opcode & 0x0F00) >> 8) as u8;
-        let y: u8 = ((self.opcode & 0x00F0) >> 4) as u8;
+        let x = ((self.opcode & 0x0F00) >> 8) as usize;
+        let y = ((self.opcode & 0x00F0) >> 4) as usize;
 
         // let n = self.opcode & 0x000F;                // nibble 4-bit value
         // let nn = self.opcode & 0x00FF;               // 8 bit constant u16
-
-        let nnn: u16 = self.opcode & 0x0FFF as u16;                 // addr 12-bit value
-        let kk: u16 = self.opcode & 0x00FF as u16;                  // u8, byte 8-bit value
+        let i_reg = self.i as usize;
+        let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
+        let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if DEBUG {
             println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X}, NN:{:X}, Vx: {:X}",
                      self.pc,
                      self.opcode,
-                     self.i,
+                     i_reg,
                      kk,
-                     self.v[x as usize]);
+                     self.v[x]);
         }
 
         // TODO: Move opcodes into separate method
@@ -152,7 +151,6 @@ impl Cpu {
 
                     // 00EE RET (Return from subroutine call)
                     0x00EE => {
-                        // self.sp = self.sp.wrapping_sub(1 as u16);
                         self.sp -= 1;
                         self.pc = self.stack[(self.sp as usize)];
                         self.pc += 2;
@@ -178,7 +176,7 @@ impl Cpu {
 
             // 3XKK Skip next instruction if Vx = kk
             0x3000 => {
-                if self.v[x as usize] == kk as u8 {
+                if self.v[x] == kk as u8 {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
@@ -186,7 +184,7 @@ impl Cpu {
             }
             // 4XKK Skip next instruction if Vx != kk
             0x4000 => {
-                if self.v[x as usize] != kk as u8 {
+                if self.v[x] != kk as u8 {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
@@ -195,7 +193,7 @@ impl Cpu {
 
             // 5XY0 Skip next instruction if Vx = Vy
             0x5000 => {
-                if self.v[x as usize] == self.v[y as usize] {
+                if self.v[x] == self.v[y] {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
@@ -204,14 +202,14 @@ impl Cpu {
 
             // 6XKK Set Vx = kk. Put value of kk in to Vx register
             0x6000 => {
-                self.v[x as usize] = kk as u8;
+                self.v[x] = kk as u8;
                 self.pc += 2;
             }
 
             // 7XKK Add value kk to Vx
             0x7000 => {
                 // Wrapping (modular) addition, prevents add overflow
-                self.v[x as usize] = self.v[x as usize].wrapping_add(kk as u8);
+                self.v[x] = self.v[x].wrapping_add(kk as u8);
                 self.pc += 2;
             }
 
@@ -219,33 +217,32 @@ impl Cpu {
             0x8000 => {
                 match self.opcode & 0x000F {
                     0x0000 => {
-                        self.v[x as usize] = self.v[y as usize];
+                        self.v[x] = self.v[y];
                         self.pc += 2;
                     }
 
                     // 8XY1 Set Vx to Vx OR Vy
                     0x0001 => {
-                        self.v[x as usize] = self.v[x as usize] | self.v[y as usize];
+                        self.v[x] = self.v[x] | self.v[y];
                         self.pc += 2;
 
                     }
 
                     // 8XY2 Set Vx to Vx OR Vy
                     0x0002 => {
-                        self.v[x as usize] = self.v[x as usize] & self.v[y as usize];
+                        self.v[x] = self.v[x] & self.v[y];
                         self.pc += 2;
-                        // self.pc = self.pc + 2 & nnn;
                     }
 
                     // 8XY3 Set Vx to Vx XOR Vy
                     0x0003 => {
-                        self.v[x as usize] = self.v[x as usize] ^ self.v[y as usize];
+                        self.v[x] = self.v[x] ^ self.v[y];
                         self.pc += 2;
                     }
 
                     // 8XY4 Set Vx = Vx + Vy, set VF = carry
                     0x0004 => {
-                        let val = (self.v[x as usize] as u16) + (self.v[y as usize] as u16);
+                        let val = self.v[x] as u16 + self.v[y] as u16;
 
                         if val > 255 {
                             self.v[0xF] = 1;
@@ -253,35 +250,35 @@ impl Cpu {
                             self.v[0xF] = 0;
                         }
 
-                        self.v[x as usize] = val as u8;
+                        self.v[x] = val as u8;
                         self.pc += 2;
                     }
 
-                    // 8XY5 Set Vx = Vx - Vy, set VF = NOT borrow
+                    // 8XY5 Set Vx = Vx - Vy, set VF = NOT borrow v[0xF]
                     0x0005 => {
-                        if self.v[x as usize] > self.v[y as usize] {
-                            self.v[0xF] = 1; // VF set to not borrow
+                        if self.v[x] > self.v[y] {
+                            self.v[0xF] = 1;
                         } else {
                             self.v[0xF] = 0;
                         }
 
-                        self.v[x as usize] = self.v[x as usize].wrapping_sub(self.v[y as usize]);
+                        self.v[x] = self.v[x].wrapping_sub(self.v[y]);
                         self.pc += 2;
                     }
 
                     // 8XY6 Vx = Vx Shift right by 1 If the least-significant bit of
                     // Vx is 1 then VF is set to 1, otherwise 0. Then Vx is divided by 2
                     0x0006 => {
-                        let lsb = self.v[x as usize] << 7 >> 7;
-                        self.v[0xF] = lsb;
-                        self.v[x as usize] >>= 1;
+                        let lsb = self.v[x] << 7 >> 7;
 
+                        self.v[0xF] = lsb;
+                        self.v[x] >>= 1;
                         self.pc += 2;
                     }
 
                     // 8XY7 Set Vx = Vy - Vx, VF NOT borrow
                     0x0007 => {
-                        if self.v[y as usize] > self.v[x as usize] {
+                        if self.v[y] > self.v[x] {
                             self.v[0xF] = 1;
                         } else {
                             self.v[0xF] = 0;
@@ -293,8 +290,8 @@ impl Cpu {
                     // If the most-significant bit of Vx is 1 then VF is set to 1
                     // Otherwise VF is set to 0 and Vx is multiplied by 2.
                     0x000E => {
-                        self.v[0xF] = self.v[x as usize] >> 7;
-                        self.v[x as usize] <<= 1;
+                        self.v[0xF] = self.v[x] >> 7;
+                        self.v[x] <<= 1;
                         self.pc += 2;
                     }
                     _ => println!("Unknown opcode [0x8000], {:X}", self.opcode),
@@ -303,7 +300,7 @@ impl Cpu {
 
             // 9XY0 Skip next instruction if Vx != Vy
             0x9000 => {
-                if self.v[x as usize] != self.v[y as usize] {
+                if self.v[x] != self.v[y] {
                     self.pc += 4;
                 } else {
                     self.pc += 2;
@@ -324,7 +321,7 @@ impl Cpu {
                 let mut rng = rand::thread_rng();
                 let random_number: u8 = rng.gen_range(0, 255);
 
-                self.v[x as usize] = random_number as u8 & kk as u8;
+                self.v[x] = random_number & kk as u8;
                 self.pc += 2;
             }
 
@@ -332,8 +329,8 @@ impl Cpu {
             // Draw sprite starting at x, y which is n lines of 8 pixels stored
             // starting at memory location of self.i
             0xD000 => {
-                let sprite_x = self.v[x as usize] as usize;
-                let sprite_y = self.v[y as usize] as usize;
+                let sprite_x = self.v[x] as usize;
+                let sprite_y = self.v[y] as usize;
                 let sprite_h = self.opcode & 0x000F;
                 self.v[0xF] = 0;
 
@@ -345,21 +342,19 @@ impl Cpu {
 
                 for j in 0..sprite_h {
                     let row = self.memory[(self.i + j as u16) as usize];
+
                     for i in 0..8 {
                         if row & (0x80 >> i) != 0 {
-                            if self.pixels[(sprite_y as usize + j as usize) % 64]
-                                [(sprite_x as usize + i as usize) % 64] {
-                                    collision = true;
-                                    self.v[0xF] = collision as u8;
-                                }
-                            self.pixels[(sprite_y as usize + j as usize) % 32]
-                                [(sprite_x as usize + i as usize) % 64] ^= true;
+                            if self.pixels[(sprite_y + j as usize) % 64][(sprite_x + i as usize) % 64] {
+                                collision = true;
+                                self.v[0xF] = collision as u8;
+                            }
+                            self.pixels[(sprite_y + j as usize) % 32][(sprite_x + i as usize) % 64] ^= true;
                         }
                     }
                 }
                 display.draw_flag = true;
                 self.pc += 2;
-
             }
 
             0xE000 => {
@@ -367,7 +362,7 @@ impl Cpu {
                     // EX9E Skip next instruction if key stored in Vx is pressed
                     // Usually the next instruction is JMP to skip to a code block
                     0x009E => {
-                        if self.keypad[self.v[x as usize] as usize] != 0 {
+                        if self.keypad[self.v[x] as usize] != 0 {
                             self.pc += 4;
                         } else {
                             self.pc += 2;
@@ -376,13 +371,13 @@ impl Cpu {
 
                     // EXA1 Skip next instruction if key stored in Vx isn't pressed
                     0x00A1 => {
-                        if self.keypad[self.v[x as usize] as usize] != 1 {
+                        if self.keypad[self.v[x] as usize] != 1 {
                             self.pc += 4;
                         } else {
                             self.pc += 2;
                         }
                     }
-                    _ => println!("Unknown opcode {:02X}", self.opcode),
+                    _ => println!("Unknown opcode: 0xE000 {:02X}", self.opcode),
                 }
             }
 
@@ -390,7 +385,7 @@ impl Cpu {
                 match self.opcode & 0x00FF {
                     // FX15 Set delay timer to Vx
                     0x0007 => {
-                        self.v[x as usize] = self.delay_timer;
+                        self.v[x] = self.delay_timer;
                         self.pc += 2;
                     }
 
@@ -399,29 +394,33 @@ impl Cpu {
                     // Iterate through all possibilities up to 0xF
                     0x000A => {
                         for i in 0..0xF {
-                            if self.keypad[i as usize] != 0 {
-                                println!("Key pressed: {:?}", self.keypad);
-                                self.v[x as usize] = i as u8;
+                            if self.keypad[i] != 0 {
+                                if DEBUG {
+                                    println!("Key pressed: {:?}", self.keypad);
+                                }
+                                self.v[x] = i as u8;
                                 break;
                             }
                         }
 
                         self.pc += 2;
                     }
+
                     // FX15 Set delay timer
                     0x0015 => {
-                        self.delay_timer = self.v[x as usize];
+                        self.delay_timer = self.v[x];
                         self.pc += 2;
                     }
+
                     // FX18 Set sound timer
                     0x0018 => {
-                        self.sound_timer = self.v[x as usize];
+                        self.sound_timer = self.v[x];
                         self.pc += 2;
                     }
 
                     // FX1E Add Vx to I (MEM)
                     0x001E => {
-                        self.i = self.i.wrapping_add(self.v[x as usize] as u16);
+                        self.i = self.i.wrapping_add(self.v[x] as u16);
                         self.pc += 2;
                     }
 
@@ -431,35 +430,37 @@ impl Cpu {
                     // Create 0x5 font accessible in memory
                     //
                     0x0029 => {
-                        self.i = (self.v[x as usize].wrapping_mul(0x5)) as u16;
+                        self.i = (self.v[x].wrapping_mul(0x5)) as u16;
                         self.pc += 2;
                     }
+
                     // FX33 (BCD) The interpreter takes the decimal value of Vx
                     // & places the hundreds digit in memory at location in I,
                     // the tens digit at location I+1, and the ones digit at location I+2.
                     0x0033 => {
-                        let i = self.i as usize;
-                        self.memory[i] = self.v[x as usize] / 100;
-                        self.memory[i + 1] = (self.v[x as usize] / 10) % 10;
-                        self.memory[i + 2] = (self.v[x as usize] % 100) % 10;
+                        self.memory[i_reg] = self.v[x] / 100;
+                        self.memory[i_reg + 1] = (self.v[x] / 10) % 10;
+                        self.memory[i_reg + 2] = (self.v[x] % 100) % 10;
                         self.pc += 2;
                     }
+
                     // FX55 Stores V0 to VX in memory starting at I
                     0x0055 => {
                         for index in 0..x + 1 {
-                            self.memory[self.i as usize + index as usize] = self.v[index as usize];
+                            self.memory[i_reg + index] = self.v[index];
                         }
                         self.pc += 2;
                     }
+
                     // FX65 Fills V0 to VX with values from memory starting at I
                     0x0065 => {
                         for index in 0..x + 1 {
-                            self.memory[(self.i as usize) + index as usize] =
-                                self.v[index as usize];
+                            self.memory[(i_reg) + index] =
+                                self.v[index];
                         }
                         self.pc += 2;
                     }
-                    _ => println!("Unknown opcode: {:X}", self.opcode),
+                    _ => println!("Unknown opcode: 0x00FF {:X}", self.opcode),
                 }
             }
             _ => println!("Unknown opcode: {:X}", self.opcode),
