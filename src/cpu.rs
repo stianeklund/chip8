@@ -85,13 +85,12 @@ impl Cpu {
             Err(e) => panic!("Read file failed: {}", e),
         };
 
-        let buf_size = buf.len();
-        for i in 0..buf_size {
+        let buf_len = buf.len();
+        for i in 0..buf_len {
+            if buf.len() >= 3584 {
+                panic!("ROM is too large");
+            }
             self.memory[i + 512] = buf[i];
-        }
-
-        if buf.len() >= 3584 {
-            panic!("ROM is too large");
         }
     }
 
