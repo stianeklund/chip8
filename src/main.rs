@@ -41,7 +41,7 @@ fn main() {
     let mut display = Display::new(&sdl_context);
 
     // Set tread sleep time
-    let ms = Duration::from_millis(5);
+    let ms = Duration::from_millis(1);
 
     // CPU execution cycle
     'step: loop {
