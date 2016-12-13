@@ -453,9 +453,8 @@ impl Cpu {
 
                     // FX65 Fills V0 to VX with values from memory starting at I
                     0x0065 => {
-                        for index in 0..x + 1 {
-                            self.memory[(i_reg) + index] =
-                                self.v[index];
+                        for index in 0..(x + 1) {
+                            self.memory[i_reg + index ] = self.v[index];
                         }
                         self.pc += 2;
                     }
