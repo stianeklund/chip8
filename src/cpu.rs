@@ -429,7 +429,7 @@ impl Cpu {
                     // Create 0x5 font accessible in memory
                     //
                     0x0029 => {
-                        self.i = (self.v[x].wrapping_mul(0x5)) as u16;
+                        self.i = (self.v[x] * 5) as u16;
                         self.pc += 2;
                     }
 
