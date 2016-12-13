@@ -419,7 +419,8 @@ impl Cpu {
 
                     // FX1E Add Vx to I (MEM)
                     0x001E => {
-                        self.i = self.i.wrapping_add(self.v[x] as u16);
+                        self.i = self.v[x] as u16;
+                        println!("At FX1E. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
                         self.pc += 2;
                     }
 
@@ -430,6 +431,9 @@ impl Cpu {
                     //
                     0x0029 => {
                         self.i = (self.v[x] * 5) as u16;
+                        if DEBUG {
+                            println!("At FX29. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
+                        }
                         self.pc += 2;
                     }
 
@@ -440,6 +444,9 @@ impl Cpu {
                         self.memory[i_reg] = self.v[x] / 100;
                         self.memory[i_reg + 1] = (self.v[x] / 10) % 10;
                         self.memory[i_reg + 2] = (self.v[x] % 100) % 10;
+                        if DEBUG {
+                            println!("At FX33. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
+                        }
                         self.pc += 2;
                     }
 
@@ -447,6 +454,9 @@ impl Cpu {
                     0x0055 => {
                         for index in 0..x + 1 {
                             self.memory[i_reg + index] = self.v[index];
+                            if DEBUG {
+                                println!("Value of Vx: {}, Value of i:{}", self.v[x], self.i);
+                            }
                         }
                         self.pc += 2;
                     }
@@ -454,8 +464,11 @@ impl Cpu {
                     // FX65 Fills V0 to VX with values from memory starting at I
                     0x0065 => {
                         for index in 0..(x + 1) {
-                            self.memory[i_reg + index ] = self.v[index];
-                        }
+                            self.memory[i_reg + index] = self.v[index as usize];
+                            if DEBUG {
+                                println!("Value of Vx: {}, Value of i:{}", self.v[x], self.i);
+                            }
+                         }
                         self.pc += 2;
                     }
                     _ => println!("Unknown opcode: 0x00FF {:X}", self.opcode),
