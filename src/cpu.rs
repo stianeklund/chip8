@@ -416,10 +416,14 @@ impl Cpu {
                         self.pc += 2;
                     }
 
-                    // FX1E Add Vx to I (MEM)
+                    // FX1E Add Vx to I (MEM) VF is set to 1 when range overflow (I +VX> 0xFFF)
                     0x001E => {
-                        self.i = self.v[x] as u16;
-                        println!("At FX1E. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
+                        if self.v[x] > 0xFFF - self.i as u8 {
+                            self.v[0xF] = 1;
+                            println!("Vx is > 0xFFF");
+                        } else {
+                            self.v[0x0];
+                        }
                         self.pc += 2;
                     }
 
