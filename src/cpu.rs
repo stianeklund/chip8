@@ -127,7 +127,7 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if DEBUG {
-            println!("PC: {:#X}  |  Opcode: {:X}  | I: {:#X}, NN:{:X}, Vx: {:X}",
+            println!("PC: {:X}  |  Opcode: {:X}  | I: {:#X}, NN:{}, Vx: {}",
                      self.pc,
                      self.opcode,
                      i_reg,
@@ -429,7 +429,7 @@ impl Cpu {
                     // Create 0x5 font accessible in memory
                     //
                     0x0029 => {
-                        self.i = (self.v[x] * 5) as u16;
+                        self.i = (self.v[x].wrapping_mul(5)) as u16;
                         if DEBUG {
                             println!("At FX29. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
                         }
@@ -440,21 +440,22 @@ impl Cpu {
                     // & places the hundreds digit in memory at location in I,
                     // the tens digit at location I+1, and the ones digit at location I+2.
                     0x0033 => {
-                        self.memory[i_reg] = self.v[x] / 100;
-                        self.memory[i_reg + 1] = (self.v[x] / 10) % 10;
-                        self.memory[i_reg + 2] = (self.v[x] % 100) % 10;
+                        self.memory[i_reg] = (self.v[x] / 100) as u8;
+                        self.memory[i_reg + 1] = (self.v[x] / 10) % 10 as u8;
+                        self.memory[i_reg + 2] = self.v[x] % 10 as u8;
                         if DEBUG {
-                            println!("At FX33. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
+                            println!("At FX33. Value of Vx: {:b}, Value of i_reg:{:b}",
+                                     self.v[x], i_reg);
                         }
                         self.pc += 2;
                     }
 
                     // FX55 Stores V0 to VX in memory starting at I
                     0x0055 => {
-                        for index in 0..x + 1 {
-                            self.memory[i_reg + index] = self.v[index];
+                        for index in 0..x {
+                            self.memory[i_reg + index] = self.v[index + 1];
                             if DEBUG {
-                                println!("Value of Vx: {}, Value of i:{}", self.v[x], self.i);
+                                println!("At FX55 Value of Vx: {:b}, Value of i:{:b}", self.v[x], self.i);
                             }
                         }
                         self.pc += 2;
@@ -462,10 +463,10 @@ impl Cpu {
 
                     // FX65 Fills V0 to VX with values from memory starting at I
                     0x0065 => {
-                        for index in 0..(x + 1) {
-                            self.memory[i_reg + index] = self.v[index as usize];
+                        for index in 0..x {
+                        self.memory[i_reg + index] = self.v[index + 1];
                             if DEBUG {
-                                println!("Value of Vx: {}, Value of i:{}", self.v[x], self.i);
+                                println!("At FX65 Value of Vx: {}, Value of i:{}", self.v[x], self.i);
                             }
                          }
                         self.pc += 2;
