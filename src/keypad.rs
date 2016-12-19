@@ -25,10 +25,9 @@ impl Keypad {
     pub fn key_press(&mut self, key: &mut [u8; 16]) -> State {
 
         for event in self.pump.poll_iter() {
-
             match event {
                 Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                Event::KeyDown { keycode: Some(Keycode::X), .. } => {
                     return State::Exit;
             },
                 _ => {}
