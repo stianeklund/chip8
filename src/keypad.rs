@@ -30,6 +30,10 @@ impl Keypad {
                 Event::KeyDown { keycode: Some(Keycode::X), .. } => {
                     return State::Exit;
             },
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                    return State::Exit;
+                },
+
                 _ => {}
             }
         }
