@@ -425,7 +425,7 @@ impl Cpu {
                             self.v[0x0];
                         }
                         self.pc = self.pc.wrapping_add(2);
-                        // self.pc += 2;
+                        self.i = self.i.wrapping_add(self.v[x] as u16);
                     }
 
                     // FX29 Set I to the location of the sprite for char in Vx
