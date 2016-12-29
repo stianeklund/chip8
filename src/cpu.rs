@@ -76,17 +76,20 @@ impl Cpu {
         let path = Path::new(file);
         let mut file = match File::open(&path) {
             Ok(file) => file,
-            Err(_) => panic!("Unable to open file, "),
+            Err(_) => panic!("Unable to open file"),
         };
 
         let mut buf = Vec::new();
+
         match file.read_to_end(&mut buf) {
             Ok(buf) => buf,
             Err(e) => panic!("Read file failed: {}", e),
         };
+
         if buf.len() >= 3584 {
             panic!("ROM is too large");
         }
+
         let buf_len = buf.len();
             for i in 0..buf_len {
             self.memory[i + 512] = buf[i];
@@ -96,14 +99,15 @@ impl Cpu {
     pub fn update_timers(&mut self) {
         if self.delay_timer > 0 {
             self.delay_timer -= 1;
-
         }
+
         if self.sound_timer > 0 {
             if self.sound_timer == 1 {
                 if DEBUG {
                     println!("Beep!");
                 }
             }
+
             self.sound_timer -= 1;
         }
     }
@@ -128,11 +132,7 @@ impl Cpu {
 
         if DEBUG {
             println!("PC: {:X}  |  Opcode: {:X}  | I: {:#X}, NN:{}, Vx: {}",
-                     self.pc,
-                     self.opcode,
-                     i_reg,
-                     kk,
-                     self.v[x]);
+                     self.pc, self.opcode, i_reg, kk, self.v[x]);
         }
 
         // TODO: Move opcodes into separate method
