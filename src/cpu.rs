@@ -149,7 +149,8 @@ impl Cpu {
 
                     // 00EE RET (Return from subroutine call)
                     0x00EE => {
-                        self.sp -= 1;
+                        self.sp = self.sp.wrapping_sub(1);
+                        // self.sp -= 1;
                         self.pc = self.stack[(self.sp as usize)];
                         self.pc += 2;
                     }
@@ -168,7 +169,7 @@ impl Cpu {
             // 2NNN Call subroutine at address nnn
             0x2000 => {
                 self.stack[self.sp as usize] = self.pc;
-                self.sp += 1;
+                self.sp = self.sp.wrapping_add(1);
                 self.pc = nnn;
             }
 
@@ -418,13 +419,13 @@ impl Cpu {
 
                     // FX1E Add Vx to I (MEM) VF is set to 1 when range overflow (I +VX> 0xFFF)
                     0x001E => {
-                        if self.v[x] > 0xFFF - self.i as u8 {
+                        if self.v[x] > 0xFFFu16.wrapping_sub(self.i) as u8 {
                             self.v[0xF] = 1;
-                            println!("Vx is > 0xFFF");
                         } else {
                             self.v[0x0];
                         }
-                        self.pc += 2;
+                        self.pc = self.pc.wrapping_add(2);
+                        // self.pc += 2;
                     }
 
                     // FX29 Set I to the location of the sprite for char in Vx
@@ -473,7 +474,8 @@ impl Cpu {
                                 println!("At FX65 Value of Vx: {}, Value of i:{}", self.v[x], self.i);
                             }
                          }
-                        self.pc += 2;
+                        self.pc = self.pc.wrapping_add(2);
+                        // self.pc += 2;
                     }
                     _ => println!("Unknown opcode: 0x00FF {:X}", self.opcode),
                 }
