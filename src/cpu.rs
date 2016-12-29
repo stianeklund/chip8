@@ -131,7 +131,7 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if DEBUG {
-            println!("PC: {:X}  |  Opcode: {:X}  | I: {:#X}, NN:{}, Vx: {}",
+            println!("PC: {:X}  |  Opcode: {:X}  | I: {:#X}, KK:{}, Vx: {}",
                      self.pc, self.opcode, i_reg, kk, self.v[x]);
         }
 
@@ -457,25 +457,19 @@ impl Cpu {
 
                     // FX55 Stores V0 to VX in memory starting at I
                     0x0055 => {
-                        for index in 0..x {
-                            self.memory[i_reg + index] = self.v[index + 1];
-                            if DEBUG {
-                                println!("At FX55 Value of Vx: {:b}, Value of i:{:b}", self.v[x], self.i);
-                            }
+                        for index in 0..x + 1 {
+                            self.memory[self.i as usize + index] = self.v[index];
                         }
                         self.pc += 2;
                     }
 
                     // FX65 Fills V0 to VX with values from memory starting at I
                     0x0065 => {
-                        for index in 0..x {
-                        self.memory[i_reg + index] = self.v[index + 1];
-                            if DEBUG {
-                                println!("At FX65 Value of Vx: {}, Value of i:{}", self.v[x], self.i);
-                            }
-                         }
-                        self.pc = self.pc.wrapping_add(2);
+                        for index in 0..x + 1 {
+                            self.v[x] = self.memory[self.i as usize + index] as u8;
+                        }
                         // self.pc += 2;
+                        self.pc = self.pc.wrapping_add(2 & 0x0FFF);
                     }
                     _ => println!("Unknown opcode: 0x00FF {:X}", self.opcode),
                 }
