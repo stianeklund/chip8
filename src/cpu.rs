@@ -342,6 +342,7 @@ impl Cpu {
                 for j in 0..sprite_h {
                     let row = self.memory[(self.i + j as u16) as usize];
 
+                    // TODO: Wrapping
                     for i in 0..8 {
                         if row & (0x80 >> i) != 0 {
                             if self.pixels[(sprite_y + j as usize) % 64][(sprite_x + i as usize) % 64] {
@@ -468,8 +469,8 @@ impl Cpu {
                         for index in 0..x + 1 {
                             self.v[x] = self.memory[self.i as usize + index] as u8;
                         }
-                        // self.pc += 2;
-                        self.pc = self.pc.wrapping_add(2 & 0x0FFF);
+                        self.pc += 2;
+                        // self.pc = self.pc.wrapping_add(2 & 0x0FFF);
                     }
                     _ => println!("Unknown opcode: 0x00FF {:X}", self.opcode),
                 }
