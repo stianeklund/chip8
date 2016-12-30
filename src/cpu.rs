@@ -7,6 +7,9 @@ use rand;
 use rand::Rng;
 use display::Display;
 
+use display::WIDTH;
+use display::HEIGHT;
+
 const DEBUG: bool = true;
 
 // Load built-in fonts into memory
@@ -342,22 +345,18 @@ impl Cpu {
                 let mut collision = false;
 
                 for j in 0..sprite_h {
-                    let row = self.memory[(self.i.wrapping_add(j as u16)as usize)];
+                    let row = self.memory[(self.i + j as u16) as usize];
 
                     for i in 0..8 {
                         if row & (0x80 >> i) != 0 {
-                            if self.pixels[(sprite_y.wrapping_add(j as usize)) % 64]
-                                [(sprite_x.wrapping_add(i as usize)) % 64] {
-                                    collision = true;
-                                    self.v[0xF] = collision as u8;
-                                }
-
-                            self.pixels[(sprite_y.wrapping_add(j as usize)) % 32]
-                                [(sprite_x.wrapping_add(i as usize)) % 64] ^= true;
+                            if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
+                                collision = true;
+                                self.v[0xF] = collision as u8;
+                            }
+                            self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] ^= true;
                         }
                     }
                 }
-
                 display.draw_flag = true;
                 self.pc += 2;
             }
