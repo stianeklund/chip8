@@ -47,9 +47,9 @@ impl<'a> Display<'a> {
                 self.pixels[y][x] = false;
             }
         }
-        self.renderer.set_draw_color(Color::RGB(0, 0, 0));
-        self.renderer.clear();
-        self.renderer.present();
+        // self.renderer.set_draw_color(Color::RGB(0, 0, 0));
+        // self.renderer.clear();
+        // self.renderer.present();
     }
 
     pub fn draw(&mut self, pixels: &[[bool; 64]; 32]) {

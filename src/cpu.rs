@@ -144,11 +144,7 @@ impl Cpu {
                 match self.opcode {
                     // 00E0 CLS
                     0x00E0 => {
-                        display.clear_display();
-                        // display.clear(&[[false; 64]; 32]);
-                        if DEBUG {
-                            println!("Clearing screen");
-                        }
+                        self.pixels = [[false; 64]; 32];
                         self.pc += 2;
                     }
 
@@ -337,11 +333,6 @@ impl Cpu {
                 let sprite_y = self.v[y] as usize;
                 let sprite_h = self.opcode & 0x000F;
                 self.v[0xF] = 0;
-
-                if DEBUG {
-                    println!("X {}, Y:{},H:{}", sprite_x, sprite_y, sprite_h);
-                }
-
                 let mut collision = false;
 
                 for j in 0..sprite_h {
