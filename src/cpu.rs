@@ -141,7 +141,11 @@ impl Cpu {
                 match self.opcode {
                     // 00E0 CLS
                     0x00E0 => {
-                        display.clear(&[[false; 64]; 32]);
+                        display.clear_display();
+                        // display.clear(&[[false; 64]; 32]);
+                        if DEBUG {
+                            println!("Clearing screen");
+                        }
                         self.pc += 2;
                     }
 
@@ -338,21 +342,22 @@ impl Cpu {
                 let mut collision = false;
 
                 for j in 0..sprite_h {
-                    let row = self.memory[(self.i.wrapping_add(j as u16)) as usize];
+                    let row = self.memory[(self.i.wrapping_add(j as u16)as usize)];
 
-                    // TODO: Wrapping
                     for i in 0..8 {
                         if row & (0x80 >> i) != 0 {
-                            if self.pixels[(sprite_y + j as usize).wrapping_rem(64)]
-                                [(sprite_x + i as usize).wrapping_rem(64)] {
+                            if self.pixels[(sprite_y.wrapping_add(j as usize)) % 64]
+                                [(sprite_x.wrapping_add(i as usize)) % 64] {
                                     collision = true;
                                     self.v[0xF] = collision as u8;
-                            }
-                            self.pixels[(sprite_y.wrapping_add(j as usize)).wrapping_rem(32)]
-                                [(sprite_x.wrapping_add(i as usize)).wrapping_rem(64)] ^= true;
+                                }
+
+                            self.pixels[(sprite_y.wrapping_add(j as usize)) % 32]
+                                [(sprite_x.wrapping_add(i as usize)) % 64] ^= true;
                         }
                     }
                 }
+
                 display.draw_flag = true;
                 self.pc += 2;
             }
