@@ -124,8 +124,6 @@ impl Cpu {
         let x = ((self.opcode & 0x0F00) >> 8) as usize;
         let y = ((self.opcode & 0x00F0) >> 4) as usize;
 
-        // let n = self.opcode & 0x000F;                // nibble 4-bit value
-        // let nn = self.opcode & 0x00FF;               // 8 bit constant u16
         let i_reg = (self.i & 0xFFF) as usize;
         let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
