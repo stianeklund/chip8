@@ -150,7 +150,6 @@ impl Cpu {
                     // 00EE RET (Return from subroutine call)
                     0x00EE => {
                         self.sp = self.sp.wrapping_sub(1);
-                        // self.sp -= 1;
                         self.pc = self.stack[(self.sp as usize)];
                         self.pc += 2;
                     }
@@ -169,6 +168,7 @@ impl Cpu {
             // 2NNN Call subroutine at address nnn
             0x2000 => {
                 self.stack[self.sp as usize] = self.pc;
+                // Stack size is 16 so we need to wrap this
                 self.sp = self.sp.wrapping_add(1);
                 self.pc = nnn;
             }
@@ -207,7 +207,7 @@ impl Cpu {
 
             // 7XKK Add value kk to Vx
             0x7000 => {
-                // Wrapping (modular) addition, prevents add overflow
+                // Wrapping addition, prevents add overflow
                 self.v[x] = self.v[x].wrapping_add(kk as u8);
                 self.pc += 2;
             }
@@ -340,16 +340,18 @@ impl Cpu {
                 let mut collision = false;
 
                 for j in 0..sprite_h {
-                    let row = self.memory[(self.i + j as u16) as usize];
+                    let row = self.memory[(self.i.wrapping_add(j as u16)) as usize];
 
                     // TODO: Wrapping
                     for i in 0..8 {
                         if row & (0x80 >> i) != 0 {
-                            if self.pixels[(sprite_y + j as usize) % 64][(sprite_x + i as usize) % 64] {
-                                collision = true;
-                                self.v[0xF] = collision as u8;
+                            if self.pixels[(sprite_y + j as usize).wrapping_rem(64)]
+                                [(sprite_x + i as usize).wrapping_rem(64)] {
+                                    collision = true;
+                                    self.v[0xF] = collision as u8;
                             }
-                            self.pixels[(sprite_y + j as usize) % 32][(sprite_x + i as usize) % 64] ^= true;
+                            self.pixels[(sprite_y.wrapping_add(j as usize)).wrapping_rem(32)]
+                                [(sprite_x.wrapping_add(i as usize)).wrapping_rem(64)] ^= true;
                         }
                     }
                 }
