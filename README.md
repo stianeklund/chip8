@@ -1,5 +1,7 @@
 # chip8
-### CHIP-8 interpreter written in Rust
+### CHIP-8 interpreter written in Rust using rust-sdl2
+
+![](http://i.imgur.com/E1WLHkL.png)
 
 ---
 
@@ -8,6 +10,7 @@ Sources used:
 * https://en.wikipedia.org/wiki/CHIP-8
 * http://devernay.free.fr/hacks/chip8/C8TECH10.HTM
 * http://www.multigesture.net/wp-content/uploads/mirror/goldroad/chip8.shtml
+* http://www.emutalk.net/threads/19894-Chip-8/
 * http://www.multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/
 
 On Pixel drawing:
