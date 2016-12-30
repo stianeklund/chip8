@@ -4,7 +4,10 @@ use sdl2::Sdl;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
-// SDL Window TODO: Check if struct contents need pub
+const WIDTH: u32 = 64;
+const HEIGHT: u32 = 64;
+const NPIXELS: usize = (WIDTH * HEIGHT) as usize;
+
 pub struct Display<'a> {
     pub renderer: sdl2::render::Renderer<'a>,
     pub pixels: [[bool; 64]; 32],
@@ -36,8 +39,10 @@ impl<'a> Display<'a> {
     }
 
     pub fn clear(&mut self, pixels: &[[bool; 64]; 32]) {
-        self.pixels = [[true; 64]; 32];
+        for i in 0..NPIXELS {
+        self.pixels = [[false; 64]; 32];
         self.draw_flag = true;
+        }
     }
 
     pub fn draw(&mut self, pixels: &[[bool; 64]; 32]) {
