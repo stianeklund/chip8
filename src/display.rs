@@ -5,7 +5,7 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
 const WIDTH: u32 = 64;
-const HEIGHT: u32 = 64;
+const HEIGHT: u32 = 32;
 const NPIXELS: usize = (WIDTH * HEIGHT) as usize;
 
 pub struct Display<'a> {
@@ -22,7 +22,7 @@ impl<'a> Display<'a> {
         // let mut timer = sdl_context.timer().unwrap();
 
         // Create window
-        let window = video.window("Chip-8", 64*10, 32*10)
+        let window = video.window("Chip-8", WIDTH*10, HEIGHT*10)
             .position_centered()
             .build()
             .expect("Window creation failed");
@@ -39,10 +39,18 @@ impl<'a> Display<'a> {
     }
 
     pub fn clear(&mut self, pixels: &[[bool; 64]; 32]) {
-        for i in 0..NPIXELS {
-        self.pixels = [[false; 64]; 32];
-        self.draw_flag = true;
+            self.pixels = [[false; 64]; 32];
+    }
+
+    pub fn clear_display(&mut self) {
+        for x in 0..HEIGHT {
+            for y in 0..WIDTH {
+                self.pixels[x as usize][y as usize] = false;
+            }
         }
+        self.renderer.set_draw_color(Color::RGB(0, 0, 0));
+        self.renderer.clear();
+        self.renderer.present();
     }
 
     pub fn draw(&mut self, pixels: &[[bool; 64]; 32]) {
