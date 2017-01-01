@@ -7,10 +7,9 @@ use rand;
 use rand::Rng;
 use display::Display;
 
-use display::WIDTH;
-use display::HEIGHT;
+use display::{WIDTH, HEIGHT};
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
@@ -53,7 +52,6 @@ pub struct Cpu {
 impl Cpu {
     pub fn new() -> Cpu {
         let mut memory: [u8; 4096] = [0; 4096];
-
         // Load sprites into memory
         for i in 0..80 {
             memory[i] = FONT[i];
@@ -115,10 +113,7 @@ impl Cpu {
         }
     }
 
-    /// This is big-endian, so we need to shift 8 bytes to the left
-    /// then bitwise-or it with the next byte to get the full 16-bit value
-    /// All instructions are 2 bytes long & are stored most-significant-byte first
-    /// One opcode is 2 bytes long. Fetch 2 bytes and merge them
+    // Fetch high & low bytes & merge
     pub fn step(&mut self, display: &mut Display) {
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 |
                       (self.memory[self.pc as usize + 1] as u16);
@@ -136,10 +131,9 @@ impl Cpu {
                      self.pc, self.opcode, i_reg, kk, self.v[x]);
         }
 
-        // TODO: Move opcodes into separate method
+        // Relying on the first 4 bits is not enough in this case.
+        // We need to compare the last four bits, hence the second match block.
         match self.opcode & 0xF000 {
-            // Relying on the first 4 bits is not enough in this case.
-            // We need to compare the last four bits, hence the second match block.
             0x0000 => {
                 match self.opcode {
                     // 00E0 CLS
@@ -428,7 +422,6 @@ impl Cpu {
                     // Chars 0-F are represented by a 4x5 font
                     // Each character contains 5 elements
                     // Create 0x5 font accessible in memory
-                    //
                     0x0029 => {
                         self.i = (self.v[x].wrapping_mul(5)) as u16;
                         if DEBUG {
@@ -444,7 +437,8 @@ impl Cpu {
                         self.memory[i_reg] = (self.v[x] / 100) as u8;
                         self.memory[i_reg + 1] = (self.v[x] / 10) % 10 as u8;
                         self.memory[i_reg + 2] = self.v[x] % 10 as u8;
-                        if DEBUG {
+
+                          if DEBUG {
                             println!("At FX33. Value of Vx: {:b}, Value of i_reg:{:b}",
                                      self.v[x], i_reg);
                         }
