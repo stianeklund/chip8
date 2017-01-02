@@ -1,0 +1,14 @@
+# sudo: false
+dist: trusty
+
+language: rust
+rust:
+  - stable
+
+addons:
+  apt:
+    packages:
+      - libsdl2-dev
+      - libsdl2-image-dev
+before_install:
+  - sudo apt-get -qq update
