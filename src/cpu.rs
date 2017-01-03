@@ -35,7 +35,7 @@ const FONT: [u8; 80] = [
 
 pub struct Cpu {
     opcode: u16,
-    memory: [u8; 4096],                  // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
+    memory: Box<[u8; 4096]>,             // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
     v: [u8; 16],                         // 8-bit general purpose register, (V0 - VE*).
     i: u16,                              // Index register (start at 0x200)
     pc: u16,                             // Program Counter. Jump to 0x200 on RST
@@ -51,11 +51,10 @@ pub struct Cpu {
 
 impl Cpu {
     pub fn new() -> Cpu {
-        let mut memory: [u8; 4096] = [0; 4096];
+        let mut memory = Box::new([0; 4096]);
+
         // Load sprites into memory
-        for i in 0..80 {
-            memory[i] = FONT[i];
-        }
+        memory[0..80].copy_from_slice(&FONT[0..80]);
 
         Cpu {
             opcode: 0,
@@ -92,9 +91,7 @@ impl Cpu {
         }
 
         let buf_len = buf.len();
-            for i in 0..buf_len {
-            self.memory[i + 512] = buf[i];
-        }
+        for i in 0..buf_len { self.memory[i + 512] = buf[i]; }
     }
 
     pub fn update_timers(&mut self) {
@@ -114,7 +111,7 @@ impl Cpu {
     }
 
     // Fetch high & low bytes & merge
-    pub fn step(&mut self, display: &mut Display) {
+    pub fn run(&mut self, display: &mut Display) {
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 |
                       (self.memory[self.pc as usize + 1] as u16);
 
