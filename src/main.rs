@@ -29,9 +29,9 @@ fn main() {
 
     // SDL2 context
     let sdl_context = sdl2::init().expect("sdl2 init failed in main");
-    let mut timer = sdl_context.timer().unwrap();
+    let mut timer = sdl_context.timer().expect("sdl_context timer failed");
 
-    // Load rom (TODO: check size)
+    // Load rom
     cpu.load_bin(bin);
 
     // Initialize Keyboard
@@ -40,19 +40,37 @@ fn main() {
     // Initialize SDL Window
     let mut display = Display::new(&sdl_context);
 
+    // Frame timing
+    let interval = 1_000 / 60;
+    let mut before = timer.ticks();
+    let mut last_second = timer.ticks();
+    let mut fps = 0u16;
+
     // Set tread sleep time
     let ms = Duration::from_millis(8);
 
     // CPU execution cycle
     'run: loop {
-
         match keypad.key_press(&mut cpu.keypad) {
             keypad::State::Exit => break 'run,
             keypad::State::Continue => {}
         }
 
+        let now = timer.ticks();
+        let dt: f32 = (now - before) as f32;
+        let elapsed = dt as f64 / 1_000.0;
+
+        before = now;
+        fps += 1;
+        if now - last_second > 1_000 {
+            println!("FPS: {}", fps);
+            last_second = now;
+            fps = 0;
+
+        }
         cpu.run(&mut display);
         cpu.update_timers();
-        sleep(ms);
-        }
+        cpu.step_instruction(dt);
+        // sleep(ms);
+    }
 }
