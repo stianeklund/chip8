@@ -51,7 +51,7 @@ fn main() {
             keypad::State::Continue => {}
         }
 
-        cpu.step(&mut display);
+        cpu.run(&mut display);
         display.draw(&cpu.pixels);
         cpu.update_timers();
 
