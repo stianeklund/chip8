@@ -1,5 +1,3 @@
-// src/cpu.rs
-
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
@@ -10,6 +8,7 @@ use display::Display;
 use display::{WIDTH, HEIGHT};
 
 const DEBUG: bool = false;
+const CLOCK_HZ: f32 = 600.0;
 
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
@@ -43,6 +42,8 @@ pub struct Cpu {
     sp: u16,                             // Stack pointer
     delay_timer: u8,                     // 8-bit Delay Timer
     sound_timer: u8,                     // 8-bit Sound Timer
+    snd_tick: f32,                       // Sound timer tick
+    tick: f32,                           // Cpu timer tick
     pub draw_flag: bool,                 // 0x00E0 CLS
     pub pixels: [[bool; 64]; 32],        // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
@@ -66,6 +67,8 @@ impl Cpu {
             sp: 0,
             delay_timer: 0,
             sound_timer: 0,
+            snd_tick: 0.0,
+            tick: 0.0,
             draw_flag: true,
             pixels: [[false; 64]; 32],
             keypad: [0; 16],
@@ -96,6 +99,25 @@ impl Cpu {
             }
             self.sound_timer -= 1;
         }
+    }
+
+    // TODO Different timers for sound / video
+    pub fn step_timer(&mut self, dt:f32) {
+        if self.delay_timer > 0 {
+            self.tick -= dt;
+
+            if self.tick <= 0.0 {
+                self.delay_timer -= 1;
+                self.tick = 1.0 / 60.0;
+            }
+        }
+    }
+
+    // TODO Improve stepping function
+    pub fn step_instruction(&mut self, dt:f32) {
+        let step = (CLOCK_HZ * dt) as usize;
+        let remaining = dt / step as f32;
+        for i in 0..step { self.step_timer(remaining); }
     }
 
     // Fetch high & low bytes & merge
@@ -357,7 +379,7 @@ impl Cpu {
 
             0xF000 => {
                 match self.opcode & 0x00FF {
-                    // FX15 Set delay timer to Vx
+                    // FX07 Set delay timer to Vx
                     0x0007 => {
                         self.v[x] = self.delay_timer;
                         self.pc += 2;
@@ -384,11 +406,13 @@ impl Cpu {
                     0x0015 => {
                         self.delay_timer = self.v[x];
                         self.pc += 2;
+                        self.tick = 1.0 / 60.0;
                     }
 
                     // FX18 Set sound timer
                     0x0018 => {
                         self.sound_timer = self.v[x];
+                        self.snd_tick = 1.0 / 60.0;
                         self.pc += 2;
                     }
 

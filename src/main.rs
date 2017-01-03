@@ -1,15 +1,13 @@
-// src/main.rs
 extern crate sdl2;
 extern crate sdl2_image;
 extern crate rand;
 
-use std::env;
 mod cpu;
 mod display;
 mod keypad;
-use std::thread::sleep;
-use std::time::Duration;
 
+use std::env;
+use std::time::Duration;
 use display::Display;
 
 const DEBUG: bool = false;
@@ -21,7 +19,6 @@ fn main() {
 		    println!("[Path to rom]");
 		    return;
 	  }
-
 	  let bin = &args[1];
 
     // Initialize CPU
@@ -41,13 +38,10 @@ fn main() {
     let mut display = Display::new(&sdl_context);
 
     // Frame timing
-    let interval = 1_000 / 60;
+    let interval = 1000 / 60;
     let mut before = timer.ticks();
     let mut last_second = timer.ticks();
     let mut fps = 0u16;
-
-    // Set tread sleep time
-    let ms = Duration::from_millis(8);
 
     // CPU execution cycle
     'run: loop {
@@ -58,12 +52,13 @@ fn main() {
 
         let now = timer.ticks();
         let dt: f32 = (now - before) as f32;
-        let elapsed = dt as f64 / 1_000.0;
+        let elapsed = dt as f32 / 1000.0;
 
         before = now;
         fps += 1;
+
         if now - last_second > 1_000 {
-            println!("FPS: {}", fps);
+            if DEBUG { println!("FPS: {}", fps); }
             last_second = now;
             fps = 0;
 
@@ -71,6 +66,5 @@ fn main() {
         cpu.run(&mut display);
         cpu.update_timers();
         cpu.step_instruction(dt);
-        // sleep(ms);
     }
 }

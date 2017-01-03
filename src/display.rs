@@ -18,7 +18,6 @@ impl<'a> Display<'a> {
 
         // Initialize SDL2
         let video = sdl_context.video().unwrap();
-        // let mut timer = sdl_context.timer().unwrap();
 
         // Create window
         let window = video.window("Chip-8", WIDTH as u32 * 10, HEIGHT as u32 * 10)
@@ -37,16 +36,8 @@ impl<'a> Display<'a> {
         }
     }
 
-    pub fn clear(&mut self, pixels: &[[bool; 64]; 32]) {
+    pub fn clear(&mut self) {
             self.pixels = [[false; 64]; 32];
-    }
-
-    pub fn clear_display(&mut self) {
-        for y in 0..HEIGHT {
-            for x in 0..WIDTH {
-                self.pixels[y][x] = false;
-            }
-        }
     }
 
     pub fn draw(&mut self, pixels: &[[bool; 64]; 32]) {
