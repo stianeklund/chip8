@@ -74,17 +74,10 @@ impl Cpu {
 
     pub fn load_bin(&mut self, file: &str) {
         let path = Path::new(file);
-        let mut file = match File::open(&path) {
-            Ok(file) => file,
-            Err(_) => panic!("Unable to open file"),
-        };
-
+        let mut file = File::open(&path).expect("File open failed");
         let mut buf = Vec::new();
 
-        match file.read_to_end(&mut buf) {
-            Ok(buf) => buf,
-            Err(e) => panic!("Read file failed: {}", e),
-        };
+        file.read_to_end(&mut buf).expect("Failed to read file");
 
         if buf.len() >= 3584 {
             panic!("ROM is too large");
@@ -95,17 +88,12 @@ impl Cpu {
     }
 
     pub fn update_timers(&mut self) {
-        if self.delay_timer > 0 {
-            self.delay_timer -= 1;
-        }
+        if self.delay_timer > 0 { self.delay_timer -= 1; }
 
         if self.sound_timer > 0 {
             if self.sound_timer == 1 {
-                if DEBUG {
-                    println!("Beep!");
-                }
+                if DEBUG { println!("Beep!"); }
             }
-
             self.sound_timer -= 1;
         }
     }
@@ -119,7 +107,7 @@ impl Cpu {
         let x = ((self.opcode & 0x0F00) >> 8) as usize;
         let y = ((self.opcode & 0x00F0) >> 4) as usize;
 
-        let i_reg = (self.i & 0xFFF) as usize;
+        let i_reg = (self.i & 0xFFF) as usize;          // i register
         let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
