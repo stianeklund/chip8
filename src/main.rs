@@ -41,20 +41,18 @@ fn main() {
     let mut display = Display::new(&sdl_context);
 
     // Set tread sleep time
-    let ms = Duration::from_millis(1);
+    let ms = Duration::from_millis(8);
 
     // CPU execution cycle
-    'step: loop {
+    'run: loop {
 
         match keypad.key_press(&mut cpu.keypad) {
-            keypad::State::Exit => break 'step,
+            keypad::State::Exit => break 'run,
             keypad::State::Continue => {}
         }
 
         cpu.run(&mut display);
-        display.draw(&cpu.pixels);
         cpu.update_timers();
-
         sleep(ms);
         }
 }
