@@ -339,7 +339,7 @@ impl Cpu {
                         }
                     }
                 }
-                display.draw_flag = true;
+                display.draw(&self.pixels);
                 self.pc += 2;
             }
 
@@ -456,7 +456,6 @@ impl Cpu {
                             self.v[x] = self.memory[self.i as usize + index] as u8;
                         }
                         self.pc += 2;
-                        // self.pc = self.pc.wrapping_add(2 & 0x0FFF);
                     }
                     _ => println!("Unknown opcode: 0x00FF {:X}", self.opcode),
                 }
