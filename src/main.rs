@@ -7,10 +7,9 @@ mod display;
 mod keypad;
 
 use std::env;
-use std::time::Duration;
 use display::Display;
 
-const DEBUG: bool = false;
+use cpu::DEBUG;
 
 fn main() {
 

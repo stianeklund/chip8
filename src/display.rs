@@ -36,10 +36,6 @@ impl<'a> Display<'a> {
         }
     }
 
-    pub fn clear(&mut self) {
-            self.pixels = [[false; 64]; 32];
-    }
-
     pub fn draw(&mut self, pixels: &[[bool; 64]; 32]) {
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
