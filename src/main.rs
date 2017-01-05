@@ -9,23 +9,23 @@ mod keypad;
 use std::env;
 use display::Display;
 
-use cpu::DEBUG;
+pub const DEBUG: bool = true;
 
 fn main() {
 
     let args: Vec<String> = env::args().collect();
-	  if args.len() != 2 {
-		    println!("[Path to rom]");
-		    return;
-	  }
-	  let bin = &args[1];
+    if args.len() != 2 {
+        println!("[Path to rom]");
+        return;
+    }
+    let bin = &args[1];
 
     // Initialize CPU
     let mut cpu = cpu::Cpu::new();
 
     // SDL2 context
     let sdl_context = sdl2::init().expect("sdl2 init failed in main");
-    let mut timer = sdl_context.timer().expect("sdl_context timer failed");
+    let mut timer = sdl_context.timer().expect("sdl context timer failed");
 
     // Load rom
     cpu.load_bin(bin);
@@ -37,10 +37,11 @@ fn main() {
     let mut display = Display::new(&sdl_context);
 
     // Frame timing
-    let interval = 1000 / 60;
+    let interval = 1_000 / 300;
     let mut before = timer.ticks();
     let mut last_second = timer.ticks();
     let mut fps = 0u16;
+
 
     // CPU execution cycle
     'run: loop {
@@ -49,21 +50,25 @@ fn main() {
             keypad::State::Continue => {}
         }
 
-        let now = timer.ticks();
-        let dt: f32 = (now - before) as f32;
-        let elapsed = dt as f32 / 1000.0;
+        cpu.run(&mut display);
+        cpu.update_timers();
 
+        // Frame timing
+        let now = timer.ticks();
+        let dt = now - before;
+
+        // Hacky.. delay if deltatime is smaller than interval
+        if dt < interval {
+            timer.delay(interval - dt);
+            continue;
+        }
         before = now;
         fps += 1;
-
-        if now - last_second > 1_000 {
+        if now - last_second > 1000 {
             if DEBUG { println!("FPS: {}", fps); }
             last_second = now;
             fps = 0;
-
         }
-        cpu.run(&mut display);
-        cpu.update_timers();
-        cpu.step_instruction(dt);
+        cpu.step_instruction(dt as f32);
     }
 }
