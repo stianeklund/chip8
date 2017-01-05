@@ -7,7 +7,7 @@ use display::Display;
 
 use display::{WIDTH, HEIGHT};
 
-pub const DEBUG: bool = false;
+use DEBUG;
 const CLOCK_HZ: f32 = 600.0;
 
 // Load built-in fonts into memory
