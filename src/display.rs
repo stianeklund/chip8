@@ -17,7 +17,7 @@ impl<'a> Display<'a> {
     pub fn new(sdl_context: &Sdl) -> Display<'a> {
 
         // Initialize SDL2
-        let video = sdl_context.video().unwrap();
+        let video = sdl_context.video().expect("SDL2 initialization failed");
 
         // Create window
         let window = video.window("Chip-8", WIDTH as u32 * 10, HEIGHT as u32 * 10)
@@ -27,7 +27,7 @@ impl<'a> Display<'a> {
         let renderer = window.renderer()
             .accelerated()
             .build()
-            .unwrap();
+            .expect("Initialization of window renderer failed");
 
         Display {
             renderer: renderer,
