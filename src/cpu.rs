@@ -8,7 +8,6 @@ use display::Display;
 use display::{WIDTH, HEIGHT};
 
 use DEBUG;
-const CLOCK_HZ: f32 = 600.0;
 
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
@@ -90,19 +89,7 @@ impl Cpu {
         for i in 0..buf_len { self.memory[i + 512] = buf[i]; }
     }
 
-    pub fn update_timers(&mut self) {
-        if self.delay_timer > 0 { self.delay_timer -= 1; }
-
-        if self.sound_timer > 0 {
-            if self.sound_timer == 1 {
-                if DEBUG { println!("Beep!"); }
-            }
-            self.sound_timer -= 1;
-        }
-    }
-
-    // TODO Different timers for sound / video
-    pub fn step_timer(&mut self, dt:f32) {
+    pub fn update_timers(&mut self, dt:f32) {
         if self.delay_timer > 0 {
             self.tick -= dt;
 
@@ -111,13 +98,15 @@ impl Cpu {
                 self.tick = 1.0 / 60.0;
             }
         }
-    }
 
-    // TODO Improve stepping function
-    pub fn step_instruction(&mut self, dt:f32) {
-        let step = (CLOCK_HZ * dt) as usize;
-        let remaining = dt / step as f32;
-        for i in 0..step { self.step_timer(remaining); }
+        if self.sound_timer > 0 {
+            self.snd_tick -= dt;
+            if DEBUG { println!("BEEP!"); }
+            if self.snd_tick <= 0.0 {
+                self.sound_timer -= 1;
+                self.snd_tick = 1.0 / 60.0;
+            }
+        }
     }
 
     // Fetch high & low bytes & merge
@@ -391,14 +380,11 @@ impl Cpu {
                     0x000A => {
                         for i in 0..0xF {
                             if self.keypad[i] != 0 {
-                                if DEBUG {
-                                    println!("Key pressed: {:?}", self.keypad);
-                                }
+                                if DEBUG { println!("Key pressed: {:?}", self.keypad); }
                                 self.v[x] = i as u8;
                                 break;
                             }
                         }
-
                         self.pc += 2;
                     }
 

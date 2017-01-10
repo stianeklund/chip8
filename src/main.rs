@@ -1,5 +1,4 @@
 extern crate sdl2;
-extern crate sdl2_image;
 extern crate rand;
 
 mod cpu;
@@ -9,7 +8,7 @@ mod keypad;
 use std::env;
 use display::Display;
 
-pub const DEBUG: bool = true;
+pub const DEBUG: bool = false;
 
 fn main() {
 
@@ -37,7 +36,7 @@ fn main() {
     let mut display = Display::new(&sdl_context);
 
     // Frame timing
-    let interval = 1_000 / 300;
+    let interval = 1_000 / 150;
     let mut before = timer.ticks();
     let mut last_second = timer.ticks();
     let mut fps = 0u16;
@@ -51,24 +50,20 @@ fn main() {
         }
 
         cpu.run(&mut display);
-        cpu.update_timers();
 
         // Frame timing
         let now = timer.ticks();
         let dt = now - before;
 
-        // Hacky.. delay if deltatime is smaller than interval
-        if dt < interval {
-            timer.delay(interval - dt);
-            continue;
-        }
+        if dt < interval { timer.delay(interval - dt); continue; }
         before = now;
         fps += 1;
+
         if now - last_second > 1000 {
             if DEBUG { println!("FPS: {}", fps); }
             last_second = now;
             fps = 0;
         }
-        cpu.step_instruction(dt as f32);
+        cpu.update_timers(dt as f32);
     }
 }
