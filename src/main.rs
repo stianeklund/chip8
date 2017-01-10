@@ -36,7 +36,7 @@ fn main() {
     let mut display = Display::new(&sdl_context);
 
     // Frame timing
-    let interval = 1_000 / 150;
+    let interval = 1_000 / 60;
     let mut before = timer.ticks();
     let mut last_second = timer.ticks();
     let mut fps = 0u16;
@@ -49,7 +49,8 @@ fn main() {
             keypad::State::Continue => {}
         }
 
-        cpu.run(&mut display);
+        // Execute & decode opcodes 2 times for every time we loop
+        cpu.step(2, &mut display);
 
         // Frame timing
         let now = timer.ticks();

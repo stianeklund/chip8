@@ -461,4 +461,10 @@ impl Cpu {
             _ => println!("Unknown opcode: {:X}", self.opcode),
         };
     }
+    // Execute fn run() n times
+    pub fn step(&mut self, times: u8, mut display: &mut Display) {
+        for _ in 0..times {
+            self.run(&mut display);
+        }
+    }
 }
