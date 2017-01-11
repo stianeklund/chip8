@@ -30,6 +30,24 @@ const FONT: [u8; 80] = [
     0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 
 ];
+const SUPER_FONT: [u8; 160] = [
+    0xFF, 0xFF, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF, // 0
+    0x18, 0x78, 0x78, 0x18, 0x18, 0x18, 0x18, 0x18, 0xFF, 0xFF, // 1
+    0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, // 2
+    0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, // 3
+    0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF, 0x03, 0x03, 0x03, 0x03, // 4
+    0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, // 5
+    0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC3, 0xC3, 0xFF, 0xFF, // 6
+    0xFF, 0xFF, 0x03, 0x03, 0x06, 0x0C, 0x18, 0x18, 0x18, 0x18, // 7
+    0xFF, 0xFF, 0xC3, 0xC3, 0xFF, 0xFF, 0xC3, 0xC3, 0xFF, 0xFF, // 8
+    0xFF, 0xFF, 0xC3, 0xC3, 0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, // 9
+    0x7E, 0xFF, 0xC3, 0xC3, 0xC3, 0xFF, 0xFf, 0xC3, 0xC3, 0xC3, // A
+    0xFC, 0xFC, 0xC3, 0xC3, 0xFC, 0xFC, 0xC3, 0xC3, 0xFC, 0xFC, // B
+    0x3C, 0xFF, 0xC3, 0xC0, 0xC0, 0xC0, 0xC0, 0xC3, 0xFF, 0x3C, // C
+    0xFC, 0xFE, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFE, 0xFC, // D
+    0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, // E
+    0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0  // F
+];
 
 pub struct Cpu {
     opcode: u16,
@@ -131,23 +149,82 @@ impl Cpu {
         // We need to compare the last four bits, hence the second match block.
         match self.opcode & 0xF000 {
             0x0000 => {
-                match self.opcode {
-                    // 00E0 CLS
-                    0x00E0 => {
-                        self.pixels = [[false; 64]; 32];
+                match self.opcode & 0x00F0 {
+
+                    // 00CN SCHIP Scroll down N lines
+                    0x00C0 => {
+                        // sprite height
+                        let sprite_h  = (self.opcode & 0x000F) as usize;
+
+                        for y in (sprite_h..HEIGHT).rev() {
+                            for x in 0..WIDTH {
+                                self.pixels[x][y] = self.pixels[x][y.wrapping_sub(sprite_h)];
+                            }
+                        }
+
+                        for y in 0..sprite_h {
+                            for x in 0..WIDTH {
+                                self.pixels[x][y] = false;
+                            }
+                        }
+
+                        display.draw(&self.pixels);
                         self.pc += 2;
+
+                        if DEBUG {
+                            println!("Call to 0x00C0");
+                            println!("N line value: {}", sprite_h);
+                        }
                     }
 
-                    // 00EE RET (Return from subroutine call)
-                    0x00EE => {
-                        self.sp = self.sp.wrapping_sub(1);
-                        self.pc = self.stack[(self.sp as usize)];
-                        self.pc += 2;
+                    _ => match self.opcode & 0x00FF {
+
+                        // 00E0 (CLS) Clear screen
+                        0x00E0 => {
+                            self.pixels = [[false; 64]; 32];
+                            self.pc += 2;
+                        }
+
+                        // 00EE (RET) Return from subroutine call
+                        0x00EE => {
+                            self.sp = self.sp.wrapping_sub(1);
+                            self.pc = self.stack[(self.sp as usize)];
+                            self.pc += 2;
+                        }
+
+                        // 00FB (SCHIP) Scroll screen 4 pixels right
+                        0x00FB => {
+                            // TODO
+                            self.pc += 2;
+                            if DEBUG { println!("Call to 00FB");}
+                        }
+
+                        // 00FC (SCHIP) Scroll screen 4 pixels left
+                        0x00FC => {
+                            // TODO
+                            self.pc += 2;
+                            if DEBUG { println!("Call to 00FC");}
+                        }
+
+                        // OOFE (SCHIP) Disable extended screen mode
+                        0x00FE => {
+                            // TODO
+                            self.pc += 2;
+                            if DEBUG { println!("Call to 00FE");}
+                        }
+
+                        // OOFF (SCHIP) Enabled enxtended screen mode: 128 x 64
+                        0x00FF => {
+                            // TODO
+                            self.pc += 2;
+                            if DEBUG { println!("Call to 00FF");}
+                        },
+
+                        0x0000 => {
+                            return;
+                        }
+                        _ => println!("Unknown opcode: 00{:X}", self.opcode),
                     }
-                    0x0000 => {
-                        return;
-                    }
-                    _ => println!("Unknown upcode: {:X}", self.opcode),
                 }
             }
 
@@ -172,6 +249,7 @@ impl Cpu {
                     self.pc += 2;
                 }
             }
+
             // 4XKK Skip next instruction if Vx != kk
             0x4000 => {
                 if self.v[x] != kk as u8 {
@@ -413,9 +491,8 @@ impl Cpu {
                         self.i = self.i.wrapping_add(self.v[x] as u16);
                     }
 
-                    // FX29 Set I to the location of the sprite for char in Vx
-                    // Chars 0-F are represented by a 4x5 font
-                    // Each character contains 5 elements
+                    // FX29 Set I to the location of the sprite (5 byte) for char in Vx
+                    // Chars 0-F are represented by a 4x5 font Each char contains 5 elements
                     // Create 0x5 font accessible in memory
                     0x0029 => {
                         self.i = (self.v[x].wrapping_mul(5)) as u16;
@@ -423,8 +500,16 @@ impl Cpu {
                             println!("At FX29. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
                         }
                         self.pc += 2;
-                    }
+                    },
 
+                    // FX30 SCHIP Set I to the location of the sprite (10 byte) for digit in VX
+                    0x0030 => {
+                        self.i = (self.v[x].wrapping_mul(10)) as u16;
+                        if DEBUG {
+                            println!("At FX30. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
+                        }
+                        self.pc += 2;
+                    }
                     // FX33 (BCD) The interpreter takes the decimal value of Vx
                     // & places the hundreds digit in memory at location in I,
                     // the tens digit at location I+1, and the ones digit at location I+2.
@@ -453,6 +538,18 @@ impl Cpu {
                         for index in 0..x + 1 {
                             self.v[x] = self.memory[self.i as usize + index] as u8;
                         }
+                        self.pc += 2;
+                    }
+
+                    // FX75 SCHIP: Store V0 to VX in RPL user flags (X <= 7)
+                    0x0075 => {
+                        // TODO
+                        self.pc += 2;
+                    }
+
+                    // FX85 SCHIP: Read V0 to VX in RPL user flags (X <= 7)
+                    0x0085 => {
+                        // TODO
                         self.pc += 2;
                     }
                     _ => println!("Unknown opcode: 0x00FF {:X}", self.opcode),
