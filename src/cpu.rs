@@ -159,15 +159,16 @@ impl Cpu {
                     // 00CN SCHIP Scroll down N lines
                     0x00C0 => {
                         // sprite height
-                        let sprite_h  = (self.opcode & 0x000F) as usize;
+                        let n  = (self.opcode & 0x000F) as usize;
 
-                        for y in (sprite_h..HEIGHT).rev() {
+                        for y in (n..HEIGHT).rev() {
                             for x in 0..WIDTH {
-                                self.pixels[x][y] = self.pixels[x][y.wrapping_sub(sprite_h)];
+                                self.pixels[x][y] = self.pixels[x][y - n];
+                                if DEBUG {println!("self.pixels: {:?}", self.pixels[x][y]);}
                             }
                         }
 
-                        for y in 0..sprite_h { for x in 0..WIDTH { self.pixels[x][y] = false; } }
+                        for y in 0..n { for x in 0..WIDTH { self.pixels[x][y] = false; } }
 
                         display.draw(&self.pixels);
                         self.pc += 2;

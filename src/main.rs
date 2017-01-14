@@ -8,7 +8,7 @@ mod keypad;
 use std::env;
 use display::Display;
 
-pub const DEBUG: bool = false;
+pub const DEBUG: bool = true;
 
 fn main() {
 
@@ -64,7 +64,7 @@ fn main() {
         fps += 1;
 
         if now - last_second > 1000 {
-            if DEBUG { println!("FPS: {}", fps); }
+            // if DEBUG { println!("FPS: {}", fps); }
             last_second = now;
             fps = 0;
         }
