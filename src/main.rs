@@ -8,7 +8,7 @@ mod keypad;
 use std::env;
 use display::Display;
 
-pub const DEBUG: bool = true;
+pub const DEBUG: bool = false;
 
 fn main() {
 
@@ -40,17 +40,21 @@ fn main() {
     let mut before = timer.ticks();
     let mut last_second = timer.ticks();
     let mut fps = 0u16;
-
+    // Changable step speed
+    let mut speed = cpu.speed;
 
     // CPU execution cycle
     'run: loop {
         match keypad.key_press(&mut cpu.keypad) {
             keypad::State::Exit => break 'run,
             keypad::State::Continue => {}
+            keypad::State::Increase => { speed += 1;println!("Speed: {}", speed); }
+            keypad::State::Decrease => { speed -= 1; println!("Speed: {}", speed); }
         }
 
+
         // Execute & decode opcodes 2 times for every time we loop
-        cpu.step(2, &mut display);
+        cpu.step(speed, &mut display);
 
         // Frame timing
         let now = timer.ticks();

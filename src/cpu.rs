@@ -66,7 +66,9 @@ pub struct Cpu {
     rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
     pub pixels: [[bool; 64]; 32],        // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
-    pub mode: Mode                       // VF is a special register used to store overflow bit
+    pub mode: Mode,                      // Default & Extended display modes
+    pub speed: u8,                       // CPU clock speed
+                                         // *VF is a special register used to store overflow bit
 }
 
 impl Cpu {
@@ -92,6 +94,7 @@ impl Cpu {
             pixels: [[false; 64]; 32],
             keypad: [0; 16],
             mode: Mode::DEFAULT,
+            speed: 2,
         }
     }
 

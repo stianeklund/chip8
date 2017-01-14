@@ -12,6 +12,8 @@ pub struct Keypad {
 pub enum State {
     Exit,
     Continue,
+    Increase,
+    Decrease,
 }
 
 impl Keypad {
@@ -24,6 +26,7 @@ impl Keypad {
     // Poll for scancodes
     pub fn key_press(&mut self, key: &mut [u8; 16]) -> State {
 
+
         for event in self.pump.poll_iter() {
             match event {
                 Event::Quit {..} |
@@ -33,7 +36,12 @@ impl Keypad {
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     return State::Exit;
                 },
-
+                Event::KeyDown { keycode: Some(Keycode::PageUp), .. } => {
+                    return State::Increase;
+                },
+                Event::KeyDown { keycode: Some(Keycode::PageDown), .. } => {
+                    return State::Decrease;
+                },
                 _ => {}
             }
         }
