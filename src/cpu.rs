@@ -6,7 +6,6 @@ use rand::Rng;
 use display::Display;
 
 use display::{WIDTH, HEIGHT};
-
 use DEBUG;
 
 // Load built-in fonts into memory
@@ -49,6 +48,7 @@ const SUPER_FONT: [u8; 160] = [
     0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0  // F
 ];
 
+#[derive(PartialEq)]
 pub enum Mode {DEFAULT, EXTENDED}       // CHIP8 & SCHIP modes
 
 pub struct Cpu {
@@ -68,6 +68,7 @@ pub struct Cpu {
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
     pub mode: Mode,                      // Default & Extended display modes
     pub speed: u8,                       // CPU clock speed
+    draw_flag: bool                      // Whether or not to redraw
                                          // *VF is a special register used to store overflow bit
 }
 
@@ -95,6 +96,7 @@ impl Cpu {
             keypad: [0; 16],
             mode: Mode::DEFAULT,
             speed: 2,
+            draw_flag: false
         }
     }
 
@@ -169,6 +171,7 @@ impl Cpu {
 
                         display.draw(&self.pixels);
                         self.pc += 2;
+                        self.draw_flag = true;
 
                         if DEBUG { println!("Call to 0x00C0"); }
                     }
@@ -178,6 +181,7 @@ impl Cpu {
                         // 00E0 (CLS) Clear screen
                         0x00E0 => {
                             self.pixels = [[false; 64]; 32];
+                            self.draw_flag = true;
                             self.pc += 2;
                         }
 
@@ -191,13 +195,12 @@ impl Cpu {
                         // 00FB (SCHIP) Scroll screen 4 pixels right
                         0x00FB => {
                             for y in 0..HEIGHT {
-                                for x in (4..WIDTH).rev() {
-                                    self.pixels[x][y] = self.pixels[x - 4][y];
-                                }
+                                for x in (4..WIDTH).rev() { self.pixels[x][y] = self.pixels[x - 4][y]; }
                                 for x in 0..4 { self.pixels[x][y] = false;
                                 }
                             }
                             display.draw(&self.pixels);
+                            self.draw_flag = true;
                             self.pc += 2;
 
                             if DEBUG { println!("Call to 00FB");}
@@ -214,19 +217,24 @@ impl Cpu {
                             for x in (WIDTH - 4).. WIDTH { self.pixels[x][y] = false; }
 
                             display.draw(&self.pixels);
+                            self.draw_flag = true;
                             self.pc += 2;
 
                             if DEBUG { println!("Call to 00FB");}
                         }
 
-                        // OOFE (SCHIP) Disable extended screen mode
+                        // 00FE (SCHIP) Disable extended screen mode
                         0x00FE => {
                             self.mode = Mode::DEFAULT;
                             self.pc += 2;
                             if DEBUG { println!("Call to 00FE");}
                         }
-
-                        // OOFF (SCHIP) Enabled enxtended screen mode: 128 x 64
+                        // 00FD (SCHIP) Exit CHIP8 Interpreter
+                        0x00FD => {
+                            // TODO
+                            if DEBUG { println!("Call to 00FD");}
+                        }
+                        // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
                         0x00FF => {
                             self.mode = Mode::EXTENDED;
                             self.pc += 2;
@@ -410,9 +418,13 @@ impl Cpu {
             // Draw sprite starting at x, y which is n lines of 8 pixels stored
             // starting at memory location of self.i
             0xD000 => {
+                let h = self.opcode & 0x000F;
+
+                let sprite_w = if h == 0 && self.mode == Mode::EXTENDED {16} else {8};
+                let sprite_h = if h == 0 {16} else {h};
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
-                let sprite_h = self.opcode & 0x000F;
+
                 self.v[0xF] = 0;
                 let mut collision = false;
 
@@ -430,6 +442,7 @@ impl Cpu {
                     }
                 }
                 display.draw(&self.pixels);
+                self.draw_flag = true;
                 self.pc += 2;
             }
 

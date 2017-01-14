@@ -48,8 +48,8 @@ fn main() {
         match keypad.key_press(&mut cpu.keypad) {
             keypad::State::Exit => break 'run,
             keypad::State::Continue => {}
-            keypad::State::Increase => { speed += 1; println!("Speed: {}", speed); }
-            keypad::State::Decrease => { speed -= 1; println!("Speed: {}", speed); }
+            keypad::State::Increase => { speed = speed.wrapping_add(1); println!("Speed: {}", speed); }
+            keypad::State::Decrease => { speed = speed.wrapping_sub(1); println!("Speed: {}", speed); }
         }
 
         // Execute & decode opcodes 2 times for every time we loop
