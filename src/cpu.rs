@@ -49,6 +49,8 @@ const SUPER_FONT: [u8; 160] = [
     0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0  // F
 ];
 
+pub enum Mode {DEFAULT, EXTENDED}       // CHIP8 & SCHIP modes
+
 pub struct Cpu {
     opcode: u16,
     memory: Box<[u8; 4096]>,             // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
@@ -61,10 +63,10 @@ pub struct Cpu {
     sound_timer: u8,                     // 8-bit Sound Timer
     snd_tick: f32,                       // Sound timer tick
     tick: f32,                           // Cpu timer tick
-    pub draw_flag: bool,                 // 0x00E0 CLS
+    rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
     pub pixels: [[bool; 64]; 32],        // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
-                                         // VF is a special register used to store overflow bit
+    pub mode: Mode                       // VF is a special register used to store overflow bit
 }
 
 impl Cpu {
@@ -86,9 +88,10 @@ impl Cpu {
             sound_timer: 0,
             snd_tick: 0.0,
             tick: 0.0,
-            draw_flag: true,
+            rpl_flags: [0; 8],
             pixels: [[false; 64]; 32],
             keypad: [0; 16],
+            mode: Mode::DEFAULT,
         }
     }
 
@@ -99,10 +102,7 @@ impl Cpu {
 
         file.read_to_end(&mut buf).expect("Failed to read file");
 
-        if buf.len() >= 3584 {
-            panic!("ROM is too large");
-        }
-
+        if buf.len() >= 3584 { panic!("ROM is too large"); }
         let buf_len = buf.len();
         for i in 0..buf_len { self.memory[i + 512] = buf[i]; }
     }
@@ -162,19 +162,12 @@ impl Cpu {
                             }
                         }
 
-                        for y in 0..sprite_h {
-                            for x in 0..WIDTH {
-                                self.pixels[x][y] = false;
-                            }
-                        }
+                        for y in 0..sprite_h { for x in 0..WIDTH { self.pixels[x][y] = false; } }
 
                         display.draw(&self.pixels);
                         self.pc += 2;
 
-                        if DEBUG {
-                            println!("Call to 0x00C0");
-                            println!("N line value: {}", sprite_h);
-                        }
+                        if DEBUG { println!("Call to 0x00C0"); }
                     }
 
                     _ => match self.opcode & 0x00FF {
@@ -194,28 +187,45 @@ impl Cpu {
 
                         // 00FB (SCHIP) Scroll screen 4 pixels right
                         0x00FB => {
-                            // TODO
+                            for y in 0..HEIGHT {
+                                for x in (4..WIDTH).rev() {
+                                    self.pixels[x][y] = self.pixels[x - 4][y];
+                                }
+                                for x in 0..4 { self.pixels[x][y] = false;
+                                }
+                            }
+                            display.draw(&self.pixels);
                             self.pc += 2;
+
                             if DEBUG { println!("Call to 00FB");}
                         }
 
                         // 00FC (SCHIP) Scroll screen 4 pixels left
                         0x00FC => {
-                            // TODO
+                            for y in 0..HEIGHT {
+                                for x in 0..WIDTH - 4 {
+                                    self.pixels[x][y] = self.pixels[x + 4][y];
+                                }
+                            }
+
+                            for x in (WIDTH - 4).. WIDTH { self.pixels[x][y] = false; }
+
+                            display.draw(&self.pixels);
                             self.pc += 2;
-                            if DEBUG { println!("Call to 00FC");}
+
+                            if DEBUG { println!("Call to 00FB");}
                         }
 
                         // OOFE (SCHIP) Disable extended screen mode
                         0x00FE => {
-                            // TODO
+                            self.mode = Mode::DEFAULT;
                             self.pc += 2;
                             if DEBUG { println!("Call to 00FE");}
                         }
 
                         // OOFF (SCHIP) Enabled enxtended screen mode: 128 x 64
                         0x00FF => {
-                            // TODO
+                            self.mode = Mode::EXTENDED;
                             self.pc += 2;
                             if DEBUG { println!("Call to 00FF");}
                         },
