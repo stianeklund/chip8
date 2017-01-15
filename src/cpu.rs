@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::cmp;
+
 use rand;
 use rand::Rng;
 use display::Display;
@@ -554,7 +556,7 @@ impl Cpu {
 
                     // FX55 Stores V0 to VX in memory starting at I
                     0x0055 => {
-                        for index in 0..x + 1 {
+                        for index in 0..(x + 1) {
                             self.memory[self.i as usize + index] = self.v[index];
                         }
                         self.pc += 2;
@@ -562,21 +564,25 @@ impl Cpu {
 
                     // FX65 Fills V0 to VX with values from memory starting at I
                     0x0065 => {
-                        for index in 0..x + 1 {
-                            self.v[x] = self.memory[self.i as usize + index] as u8;
+                        for index in 0..(x + 1) {
+                            self.v[x] = self.memory[self.i as usize + index];
                         }
                         self.pc += 2;
                     }
 
                     // FX75 SCHIP: Store V0 to VX in RPL user flags (X <= 7)
                     0x0075 => {
-                        // TODO
+                        for index in 0..(cmp::max(x as usize, 7) + 1) {
+                            self.rpl_flags[index] = self.v[index];
+                        }
                         self.pc += 2;
                     }
 
                     // FX85 SCHIP: Read V0 to VX in RPL user flags (X <= 7)
                     0x0085 => {
-                        // TODO
+                        for index in 0..(cmp::max(x as usize, 7) + 1) {
+                            self.v[index] = self.rpl_flags[index];
+                        }
                         self.pc += 2;
                     }
                     _ => println!("Unknown opcode: 0x00FF {:X}", self.opcode),
