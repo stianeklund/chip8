@@ -434,7 +434,7 @@ impl Cpu {
                 for j in 0..sprite_h {
                     let row = self.memory[(self.i + j as u16) as usize];
 
-                    for i in 0..8 {
+                    for i in 0..sprite_w {
                         if row & (0x80 >> i) != 0 {
                             if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
                                 collision = true;
