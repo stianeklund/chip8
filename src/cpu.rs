@@ -51,7 +51,7 @@ const SUPER_FONT: [u8; 160] = [
 ];
 
 #[derive(PartialEq)]
-pub enum Mode {DEFAULT, EXTENDED}       // CHIP8 & SCHIP modes
+pub enum Mode {Default, Extended}       // CHIP8 & SCHIP modes
 
 pub struct Cpu {
     opcode: u16,
@@ -66,7 +66,7 @@ pub struct Cpu {
     snd_tick: f32,                       // Sound timer tick
     tick: f32,                           // Cpu timer tick
     rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
-    pub pixels: [[bool; 64 * 2]; 32 * 2],// For rendering
+    pub pixels: [[bool; 128]; 64],       // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
     pub mode: Mode,                      // Default & Extended display modes
     pub speed: u8,                       // CPU clock speed
@@ -94,9 +94,9 @@ impl Cpu {
             snd_tick: 0.0,
             tick: 0.0,
             rpl_flags: [0; 8],
-            pixels: [[false; 64 * 2]; 32 * 2],
+            pixels: [[false; 128]; 64],
             keypad: [0; 16],
-            mode: Mode::DEFAULT,
+            mode: Mode::Default,
             speed: 2,
             draw_flag: false
         }
@@ -161,16 +161,20 @@ impl Cpu {
                     // 00CN SCHIP Scroll down N lines
                     0x00C0 => {
                         // sprite height
-                        let n  = (self.opcode & 0x000F) as usize;
-
+                        let mut n  = (self.opcode & 0x000F) as usize;
+                        let sprite_x = self.v[x] as usize;
+                        let sprite_y = self.v[y] as usize;
                         for y in (n..HEIGHT).rev() {
-                            for x in 0..WIDTH {
+                            for x in 0..64 {
                                 self.pixels[x][y] = self.pixels[x][y - n];
-                                if DEBUG {println!("self.pixels: {:?}", self.pixels[x][y]);}
+                                if DEBUG {println!("self.pixels: {:?}, sprite height: {}", self.pixels[x][y], n);}
                             }
                         }
-
-                        for y in 0..n { for x in 0..WIDTH { self.pixels[x][y] = false; } }
+                        for y in 0..n {
+                            for x in 0..64 {
+                                self.pixels[x][y] = false;
+                            }
+                        }
 
                         display.draw(&self.pixels);
                         self.pc += 2;
@@ -183,7 +187,7 @@ impl Cpu {
 
                         // 00E0 (CLS) Clear screen
                         0x00E0 => {
-                            self.pixels = [[false; 64 * 2]; 32 * 2];
+                            self.pixels = [[false; 128]; 64];
                             self.draw_flag = true;
                             self.pc += 2;
                         }
@@ -228,7 +232,7 @@ impl Cpu {
 
                         // 00FE (SCHIP) Disable extended screen mode
                         0x00FE => {
-                            self.mode = Mode::DEFAULT;
+                            self.mode = Mode::Default;
                             self.pc += 2;
                             if DEBUG { println!("Call to 00FE");}
                         }
@@ -239,7 +243,7 @@ impl Cpu {
                         }
                         // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
                         0x00FF => {
-                            self.mode = Mode::EXTENDED;
+                            self.mode = Mode::Extended;
                             self.pc += 2;
                             if DEBUG { println!("Call to 00FF");}
                         },
@@ -423,7 +427,7 @@ impl Cpu {
             0xD000 => {
                 let h = self.opcode & 0x000F;
 
-                let sprite_w = if h == 0 && self.mode == Mode::EXTENDED {16} else {8};
+                let sprite_w = if h == 0 && self.mode == Mode::Extended {16} else {8};
                 let sprite_h = if h == 0 {16} else {h};
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
@@ -435,6 +439,7 @@ impl Cpu {
                     let row = self.memory[(self.i + j as u16) as usize];
 
                     for i in 0..sprite_w {
+                        // (HACK) Wrapping to preven overflow on SCHIP roms
                         if row & (0x80u8.wrapping_shr(i)) != 0 {
                             if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
                                 collision = true;
