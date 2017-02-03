@@ -66,7 +66,7 @@ pub struct Cpu {
     snd_tick: f32,                       // Sound timer tick
     tick: f32,                           // Cpu timer tick
     rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
-    pub pixels: [[bool; 64]; 32],        // For rendering
+    pub pixels: [[bool; 64 * 2]; 32 * 2],// For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
     pub mode: Mode,                      // Default & Extended display modes
     pub speed: u8,                       // CPU clock speed
@@ -94,7 +94,7 @@ impl Cpu {
             snd_tick: 0.0,
             tick: 0.0,
             rpl_flags: [0; 8],
-            pixels: [[false; 64]; 32],
+            pixels: [[false; 64 * 2]; 32 * 2],
             keypad: [0; 16],
             mode: Mode::DEFAULT,
             speed: 2,
@@ -183,7 +183,7 @@ impl Cpu {
 
                         // 00E0 (CLS) Clear screen
                         0x00E0 => {
-                            self.pixels = [[false; 64]; 32];
+                            self.pixels = [[false; 64 * 2]; 32 * 2];
                             self.draw_flag = true;
                             self.pc += 2;
                         }
@@ -435,7 +435,7 @@ impl Cpu {
                     let row = self.memory[(self.i + j as u16) as usize];
 
                     for i in 0..sprite_w {
-                        if row & (0x80 >> i) != 0 {
+                        if row & (0x80u8.wrapping_shr(i)) != 0 {
                             if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
                                 collision = true;
                                 self.v[0xF] = collision as u8;
