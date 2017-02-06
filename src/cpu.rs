@@ -165,7 +165,7 @@ impl Cpu {
 
                         // Subtract n from y to scroll down n height
                         for x in 0..WIDTH {
-                            for y in (HEIGHT - 1..n - 1) {
+                            for y in HEIGHT - 1..n - 1 {
                                 self.pixels[x][y] = self.pixels[x][y - n];
                             }
                         }
@@ -199,8 +199,8 @@ impl Cpu {
                         // 00FB (SCHIP) Scroll screen 4 pixels right
                         0x00FB => {
                             for y in 0..HEIGHT {
-                                for x in (4..WIDTH).rev() { self.pixels[x][y] = self.pixels[x - 4][y]; }
-                                for x in 0..4 { self.pixels[x][y] = false;
+                                for x in (4..WIDTH).rev() { self.pixels[y][x] = self.pixels[y][x - 4]; }
+                                for x in 0..4 { self.pixels[y][x] = false;
                                 }
                             }
                             display.draw(&self.pixels);
@@ -214,11 +214,10 @@ impl Cpu {
                         0x00FC => {
                             for y in 0..HEIGHT {
                                 for x in 0..WIDTH - 4 {
-                                    self.pixels[x][y] = self.pixels[x + 4][y];
+                                    self.pixels[y][x] = self.pixels[y][x + 4];
                                 }
                             }
-
-                            for x in (WIDTH - 4)..WIDTH { self.pixels[x][y] = false; }
+                            for x in (WIDTH - 4)..WIDTH { self.pixels[y][x] = false; }
 
                             display.draw(&self.pixels);
                             self.draw_flag = true;
@@ -435,15 +434,13 @@ impl Cpu {
                 for j in 0..sprite_h {
                     let row = self.memory[(self.i + j as u16) as usize];
 
-                    for i in 0..sprite_w {
-                        // (HACK) Wrapping to preven overflow on SCHIP roms
-                        if row & (0x80u8.wrapping_shr(i)) != 0 {
-                            if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
-                                collision = true;
-                                self.v[0xF] = collision as u8;
-                            }
-                            self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] ^= true;
+                    // HACK! TODO: 16x16 drawing
+                    for i in 0..sprite_w { if row & 0x80u8.wrapping_shr(i) != 0 {
+                        if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
+                            collision = true;
+                            self.v[0xF] = collision as u8;
                         }
+                        self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] ^= true; }
                     }
                 }
                 display.draw(&self.pixels);
