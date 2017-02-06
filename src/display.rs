@@ -4,12 +4,12 @@ use sdl2::Sdl;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 
-pub const WIDTH: usize = 128;
+pub const WIDTH: usize = 132;
 pub const HEIGHT: usize = 64;
 
 pub struct Display<'a> {
     pub renderer: sdl2::render::Renderer<'a>,
-    pub pixels: [[bool; 128]; 64],
+    pub pixels: [[bool; 132]; 64],
     pub draw_flag: bool,
 }
 
@@ -31,12 +31,12 @@ impl<'a> Display<'a> {
 
         Display {
             renderer: renderer,
-            pixels: [[false; 128]; 64],
+            pixels: [[false; 132]; 64],
             draw_flag: true,
         }
     }
 
-    pub fn draw(&mut self, pixels: &[[bool; 128]; 64]) {
+    pub fn draw(&mut self, pixels: &[[bool; 132]; 64]) {
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
                 if pixels[y][x] {
