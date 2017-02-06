@@ -66,7 +66,7 @@ pub struct Cpu {
     snd_tick: f32,                       // Sound timer tick
     tick: f32,                           // Cpu timer tick
     rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
-    pub pixels: [[bool; 128]; 64],       // For rendering
+    pub pixels: [[bool; 132]; 64],       // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
     pub mode: Mode,                      // Default & Extended display modes
     pub speed: u8,                       // CPU clock speed
@@ -80,6 +80,7 @@ impl Cpu {
 
         // Load sprites into memory
         memory[0..80].copy_from_slice(&FONT[0..80]);
+        memory[0..160].copy_from_slice(&SUPER_FONT[0..160]);
 
         Cpu {
             opcode: 0,
@@ -94,7 +95,7 @@ impl Cpu {
             snd_tick: 0.0,
             tick: 0.0,
             rpl_flags: [0; 8],
-            pixels: [[false; 128]; 64],
+            pixels: [[false; 132]; 64],
             keypad: [0; 16],
             mode: Mode::Default,
             speed: 2,
@@ -160,20 +161,16 @@ impl Cpu {
 
                     // 00CN SCHIP Scroll down N lines
                     0x00C0 => {
-                        // sprite height
-                        let mut n  = (self.opcode & 0x000F) as usize;
-                        let sprite_x = self.v[x] as usize;
-                        let sprite_y = self.v[y] as usize;
-                        for y in (n..HEIGHT).rev() {
-                            for x in 0..64 {
+                        let n = (self.opcode & 0x000F) as usize;
+
+                        // Subtract n from y to scroll down n height
+                        for x in 0..WIDTH {
+                            for y in (HEIGHT - 1..n - 1) {
                                 self.pixels[x][y] = self.pixels[x][y - n];
-                                if DEBUG {println!("self.pixels: {:?}, sprite height: {}", self.pixels[x][y], n);}
                             }
                         }
-                        for y in 0..n {
-                            for x in 0..64 {
-                                self.pixels[x][y] = false;
-                            }
+
+                        for y in 0..n { self.pixels[x][y] = false;
                         }
 
                         display.draw(&self.pixels);
@@ -187,7 +184,7 @@ impl Cpu {
 
                         // 00E0 (CLS) Clear screen
                         0x00E0 => {
-                            self.pixels = [[false; 128]; 64];
+                            self.pixels = [[false; 132]; 64];
                             self.draw_flag = true;
                             self.pc += 2;
                         }
@@ -221,7 +218,7 @@ impl Cpu {
                                 }
                             }
 
-                            for x in (WIDTH - 4).. WIDTH { self.pixels[x][y] = false; }
+                            for x in (WIDTH - 4)..WIDTH { self.pixels[x][y] = false; }
 
                             display.draw(&self.pixels);
                             self.draw_flag = true;
@@ -241,7 +238,7 @@ impl Cpu {
                             // TODO
                             if DEBUG { println!("Call to 00FD");}
                         }
-                        // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
+                        // 00FF (SCHIP) Enabled enxtended screen mode: 132 x 64
                         0x00FF => {
                             self.mode = Mode::Extended;
                             self.pc += 2;
