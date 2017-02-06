@@ -66,7 +66,7 @@ pub struct Cpu {
     snd_tick: f32,                       // Sound timer tick
     tick: f32,                           // Cpu timer tick
     rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
-    pub pixels: [[bool; 132]; 64],       // For rendering
+    pub pixels: [[bool; 128]; 64],       // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
     pub mode: Mode,                      // Default & Extended display modes
     pub speed: u8,                       // CPU clock speed
@@ -95,7 +95,7 @@ impl Cpu {
             snd_tick: 0.0,
             tick: 0.0,
             rpl_flags: [0; 8],
-            pixels: [[false; 132]; 64],
+            pixels: [[false; 128]; 64],
             keypad: [0; 16],
             mode: Mode::Default,
             speed: 2,
@@ -184,7 +184,7 @@ impl Cpu {
 
                         // 00E0 (CLS) Clear screen
                         0x00E0 => {
-                            self.pixels = [[false; 132]; 64];
+                            self.pixels = [[false; 128]; 64];
                             self.draw_flag = true;
                             self.pc += 2;
                         }
@@ -237,7 +237,7 @@ impl Cpu {
                             // TODO
                             if DEBUG { println!("Call to 00FD");}
                         }
-                        // 00FF (SCHIP) Enabled enxtended screen mode: 132 x 64
+                        // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
                         0x00FF => {
                             self.mode = Mode::Extended;
                             self.pc += 2;
