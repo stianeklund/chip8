@@ -5,7 +5,7 @@
 
 
 
-![](http://i.imgur.com/SD0ZuEH.png)
+![](http://i.imgur.com/cCPatux.png)
 
 ---
 
