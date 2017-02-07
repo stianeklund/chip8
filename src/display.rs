@@ -12,7 +12,7 @@ pub enum Mode { Default, Extended}
 
 pub struct Display<'a> {
     pub renderer: sdl2::render::Renderer<'a>,
-    pub pixels: [[bool; 128]; 64],
+    pub pixels: [[bool; WIDTH]; HEIGHT],
     pub draw_flag: bool,
 }
 

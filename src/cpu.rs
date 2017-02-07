@@ -63,7 +63,7 @@ pub struct Cpu {
     snd_tick: f32,                       // Sound timer tick
     tick: f32,                           // Cpu timer tick
     rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
-    pub pixels: [[bool; 128]; 64],       // For rendering
+    pub pixels: [[bool; WIDTH]; HEIGHT], // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
     pub mode: Mode,                      // Default & Extended display modes
     pub speed: u8,                       // CPU clock speed
@@ -164,9 +164,13 @@ impl Cpu {
                         let n = (self.opcode & 0x000F) as usize;
 
                         // Subtract n from y to scroll down n height
-                        for x in 0..WIDTH {
-                            for y in HEIGHT - 0..n  { self.pixels[x][y] = self.pixels[x][y - n]; } }
-                        for y in 0..n { self.pixels[x][y] = false; }
+                        for x in 0..WIDTH - 1 {
+                            for y in (1..HEIGHT).rev() {
+                                self.pixels[y][x] = self.pixels[y - 1][x];
+                            }
+                            for y in 0..n { self.pixels[y][x] = false;
+                            }
+                        }
 
                         display.draw(&self.pixels, 10);
                         self.pc += 2;
