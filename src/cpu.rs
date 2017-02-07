@@ -95,7 +95,7 @@ impl Cpu {
             snd_tick: 0.0,
             tick: 0.0,
             rpl_flags: [0; 8],
-            pixels: [[false; 128]; 64],
+            pixels: [[false; WIDTH]; HEIGHT],
             keypad: [0; 16],
             mode: Mode::Default,
             speed: 2,
@@ -198,8 +198,8 @@ impl Cpu {
                         // 00FB (SCHIP) Scroll screen 4 pixels right
                         0x00FB => {
                             for y in 0..HEIGHT { for x in (4..WIDTH).rev() {
-                                self.pixels[y][x] = self.pixels[y][x - 4]; } }
-                                for x in 0..4 { self.pixels[y][x] = false; }
+                                self.pixels[x][y] = self.pixels[x - 4][y]; } }
+                                for x in 0..4 { self.pixels[x][y] = false; }
 
                             display.draw(&self.pixels, 10);
                             self.draw_flag = true;
@@ -211,8 +211,8 @@ impl Cpu {
                         // 00FC (SCHIP) Scroll screen 4 pixels left
                         0x00FC => {
                             for y in 0..HEIGHT { for x in 0..WIDTH - 4 {
-                                self.pixels[y][x] = self.pixels[y][x + 4]; } }
-                            for x in (WIDTH - 4)..WIDTH { self.pixels[y][x] = false; }
+                                self.pixels[x][y] = self.pixels[x][y]; } }
+                            for x in (WIDTH - 4)..WIDTH { self.pixels[x][y] = false; }
 
                             display.draw(&self.pixels, 10);
                             self.draw_flag = true;

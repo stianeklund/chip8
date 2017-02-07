@@ -34,12 +34,12 @@ impl<'a> Display<'a> {
 
         Display {
             renderer: renderer,
-            pixels: [[false; 128]; 64],
+            pixels: [[false; WIDTH]; HEIGHT],
             draw_flag: true,
         }
     }
 
-    pub fn draw(&mut self, pixels: &[[bool; 128]; 64], scale: i32) {
+    pub fn draw(&mut self, pixels: &[[bool; WIDTH]; HEIGHT], scale: i32) {
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
                 if pixels[y][x] {
