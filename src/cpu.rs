@@ -7,7 +7,7 @@ use rand;
 use rand::Rng;
 use display::Display;
 
-use display::{WIDTH, HEIGHT};
+use display::{WIDTH, HEIGHT, Mode};
 use DEBUG;
 
 // Load built-in fonts into memory
@@ -50,9 +50,6 @@ const SUPER_FONT: [u8; 160] = [
     0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0  // F
 ];
 
-#[derive(PartialEq)]
-pub enum Mode {Default, Extended}       // CHIP8 & SCHIP modes
-
 pub struct Cpu {
     opcode: u16,
     memory: Box<[u8; 4096]>,             // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
@@ -80,7 +77,7 @@ impl Cpu {
 
         // Load sprites into memory
         memory[0..80].copy_from_slice(&FONT[0..80]);
-        memory[0..160].copy_from_slice(&SUPER_FONT[0..160]);
+        // memory[0..160].copy_from_slice(&SUPER_FONT[0..160]);
 
         Cpu {
             opcode: 0,
@@ -110,7 +107,7 @@ impl Cpu {
 
         file.read_to_end(&mut buf).expect("Failed to read file");
 
-        if buf.len() >= 3584 { panic!("ROM is too large"); }
+        if buf.len() >= 3585 { panic!("ROM is too large, size: {}", buf.len()); }
         let buf_len = buf.len();
         for i in 0..buf_len { self.memory[i + 512] = buf[i]; }
     }
@@ -149,8 +146,8 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if DEBUG {
-            println!("PC: {:X}  |  Opcode: {:X}  | I: {:#X}, KK:{}, Vx: {}",
-                     self.pc, self.opcode, i_reg, kk, self.v[x]);
+            println!("PC: {:X}  |  Opcode: {:X}  | I: {:#X}, KK:{}, Vx: {}, Mode: {:?}",
+                     self.pc, self.opcode, i_reg, kk, self.v[x], self.mode);
         }
 
         // Relying on the first 4 bits is not enough in this case.
@@ -165,15 +162,10 @@ impl Cpu {
 
                         // Subtract n from y to scroll down n height
                         for x in 0..WIDTH {
-                            for y in HEIGHT - 1..n - 1 {
-                                self.pixels[x][y] = self.pixels[x][y - n];
-                            }
-                        }
+                            for y in HEIGHT - 1..n - 1 { self.pixels[x][y] = self.pixels[x][y - n]; } }
+                        for y in 0..n { self.pixels[x][y] = false; }
 
-                        for y in 0..n { self.pixels[x][y] = false;
-                        }
-
-                        display.draw(&self.pixels);
+                        display.draw(&self.pixels, 10);
                         self.pc += 2;
                         self.draw_flag = true;
 
@@ -198,50 +190,46 @@ impl Cpu {
 
                         // 00FB (SCHIP) Scroll screen 4 pixels right
                         0x00FB => {
-                            for y in 0..HEIGHT {
-                                for x in (4..WIDTH).rev() { self.pixels[y][x] = self.pixels[y][x - 4]; }
-                                for x in 0..4 { self.pixels[y][x] = false;
-                                }
-                            }
-                            display.draw(&self.pixels);
+                            for y in 0..HEIGHT { for x in (4..WIDTH).rev() {
+                                self.pixels[y][x] = self.pixels[y][x - 4]; } }
+                                for x in 0..4 { self.pixels[y][x] = false; }
+
+                            display.draw(&self.pixels, 10);
                             self.draw_flag = true;
                             self.pc += 2;
 
-                            if DEBUG { println!("Call to 00FB");}
+                            if DEBUG { println!("Call to 00FB"); }
                         }
 
                         // 00FC (SCHIP) Scroll screen 4 pixels left
                         0x00FC => {
-                            for y in 0..HEIGHT {
-                                for x in 0..WIDTH - 4 {
-                                    self.pixels[y][x] = self.pixels[y][x + 4];
-                                }
-                            }
+                            for y in 0..HEIGHT { for x in 0..WIDTH - 4 {
+                                self.pixels[y][x] = self.pixels[y][x + 4]; } }
                             for x in (WIDTH - 4)..WIDTH { self.pixels[y][x] = false; }
 
-                            display.draw(&self.pixels);
+                            display.draw(&self.pixels, 10);
                             self.draw_flag = true;
                             self.pc += 2;
 
-                            if DEBUG { println!("Call to 00FB");}
+                            if DEBUG { println!("Call to 00FB"); }
                         }
 
                         // 00FE (SCHIP) Disable extended screen mode
                         0x00FE => {
                             self.mode = Mode::Default;
                             self.pc += 2;
-                            if DEBUG { println!("Call to 00FE");}
+                            if DEBUG { println!("Call to 00FE (Extended mode disabled"); }
                         }
                         // 00FD (SCHIP) Exit CHIP8 Interpreter
                         0x00FD => {
                             // TODO
-                            if DEBUG { println!("Call to 00FD");}
+                            if DEBUG { println!("Call to 00FD (Exit CHIP-8 Interpreter)"); }
                         }
                         // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
                         0x00FF => {
                             self.mode = Mode::Extended;
                             self.pc += 2;
-                            if DEBUG { println!("Call to 00FF");}
+                            if DEBUG { println!("Call to 00FF (Extended mode enabled)"); }
                         },
 
                         0x0000 => {
@@ -425,6 +413,7 @@ impl Cpu {
 
                 let sprite_w = if h == 0 && self.mode == Mode::Extended {16} else {8};
                 let sprite_h = if h == 0 {16} else {h};
+
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
 
@@ -434,7 +423,6 @@ impl Cpu {
                 for j in 0..sprite_h {
                     let row = self.memory[(self.i + j as u16) as usize];
 
-                    // HACK! TODO: 16x16 drawing
                     for i in 0..sprite_w { if row & 0x80u8.wrapping_shr(i) != 0 {
                         if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
                             collision = true;
@@ -443,7 +431,8 @@ impl Cpu {
                         self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] ^= true; }
                     }
                 }
-                display.draw(&self.pixels);
+                if self.mode == Mode::Extended { display.draw(&self.pixels, 10); }
+                else { display.draw(&self.pixels, 20)};
                 self.draw_flag = true;
                 self.pc += 2;
             }

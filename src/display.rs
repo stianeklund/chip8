@@ -7,6 +7,9 @@ use sdl2::rect::Rect;
 pub const WIDTH: usize = 128;
 pub const HEIGHT: usize = 64;
 
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub enum Mode { Default, Extended}
+
 pub struct Display<'a> {
     pub renderer: sdl2::render::Renderer<'a>,
     pub pixels: [[bool; 128]; 64],
@@ -36,7 +39,7 @@ impl<'a> Display<'a> {
         }
     }
 
-    pub fn draw(&mut self, pixels: &[[bool; 128]; 64]) {
+    pub fn draw(&mut self, pixels: &[[bool; 128]; 64], scale: i32) {
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
                 if pixels[y][x] {
@@ -44,9 +47,9 @@ impl<'a> Display<'a> {
                 } else {
                     self.renderer.set_draw_color(Color::RGB(0, 0, 0));
                 }
-                // Scaling
+                // Allow different scale size depeding on mode
                 self.renderer.fill_rect(
-                    Rect::new(x as i32 * 10, y as i32 * 10, 10 as u32, 10 as u32 )).unwrap();
+                    Rect::new(x as i32 * scale, y as i32 * scale, scale as u32, scale as u32 )).unwrap();
             }
         }
         self.renderer.present();
