@@ -75,9 +75,12 @@ impl Cpu {
     pub fn new() -> Cpu {
         let mut memory = Box::new([0; 4096]);
 
-        // Load sprites into memory
-        memory[0..80].copy_from_slice(&FONT[0..80]);
-        // memory[0..160].copy_from_slice(&SUPER_FONT[0..160]);
+        // Load sprites into memory (load first set of fonts into memory, then load SuperCHIP fonts)
+        if memory.lt(&[80]) {
+            memory[0..80].copy_from_slice(&FONT[0..80]);
+        } else if memory.lt(&[240]) {
+            memory[0..160].copy_from_slice(&SUPER_FONT[0..160]);
+        }
 
         Cpu {
             opcode: 0,
@@ -162,7 +165,7 @@ impl Cpu {
 
                         // Subtract n from y to scroll down n height
                         for x in 0..WIDTH {
-                            for y in HEIGHT - 1..n - 1 { self.pixels[x][y] = self.pixels[x][y - n]; } }
+                            for y in HEIGHT - 0..n  { self.pixels[x][y] = self.pixels[x][y - n]; } }
                         for y in 0..n { self.pixels[x][y] = false; }
 
                         display.draw(&self.pixels, 10);
