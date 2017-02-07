@@ -1,11 +1,11 @@
 # chip8
 [![Build Status](https://travis-ci.org/stianeklund/chip8.svg?branch=master)](https://travis-ci.org/stianeklund/chip8)
 
-### CHIP-8 interpreter written in Rust using rust-sdl2
+### A CHIP-8 & SuperChip interpreter written in Rust using rust-sdl2
 
 
 
-![](http://i.imgur.com/CztbPFk.png)
+![](http://i.imgur.com/dCPnV7o.png)
 
 ---
 
