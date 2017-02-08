@@ -4,7 +4,6 @@ use sdl2::event::Event;
 use sdl2::EventPump;
 use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState, Keycode, Scancode};
-
 pub struct Keypad {
     pump: EventPump
 }

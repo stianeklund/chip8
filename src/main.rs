@@ -8,7 +8,6 @@ mod keypad;
 use std::env;
 use display::Display;
 
-pub const DEBUG: bool = true;
 
 fn main() {
 
