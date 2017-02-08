@@ -78,7 +78,7 @@ impl Cpu {
         // Load sprites into memory (load first set of fonts into memory, then load SuperCHIP fonts)
         if memory.lt(&[80]) {
             memory[0..80].copy_from_slice(&FONT[0..80]);
-        } else if memory.lt(&[240]) {
+        } else if memory.lt(&[160]) {
             memory[0..160].copy_from_slice(&SUPER_FONT[0..160]);
         }
 
