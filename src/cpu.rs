@@ -407,7 +407,6 @@ impl Cpu {
             0xC000 => {
                 let mut rng = rand::thread_rng();
                 let random_number: u8 = rng.gen_range(0, 255);
-
                 self.v[x] = random_number & kk as u8;
                 self.pc += 2;
             }
@@ -416,21 +415,23 @@ impl Cpu {
             // Draw sprite starting at x, y which is n lines of 8 pixels stored
             // starting at memory location of self.i
             0xD000 => {
-                let h = self.opcode & 0x000F;
+                let h = self.opcode & 0x000F; // Sprite height
 
+                // Let sprite width be 16 (for 16x16 unless Extended mode is not enabled)
                 let sprite_w = if h == 0 && self.mode == Mode::Extended {16} else {8};
                 let sprite_h = if h == 0 {16} else {h};
 
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
 
+                // Set collision flag
                 self.v[0xF] = 0;
                 let mut collision = false;
 
                 for j in 0..sprite_h {
                     let row = self.memory[(self.i + j as u16) as usize];
 
-                    for i in 0..sprite_w { if row & 0x80u8.wrapping_shr(i) != 0 {
+                    for i in 0..sprite_w { if row & 0x80 >> i != 0 {
                         if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
                             collision = true;
                             self.v[0xF] = collision as u8;
@@ -438,8 +439,12 @@ impl Cpu {
                         self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] ^= true; }
                     }
                 }
-                if self.mode == Mode::Extended { display.draw(&self.pixels, 10); }
-                else { display.draw(&self.pixels, 20)};
+                // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
+                if self.mode == Mode::Extended {
+                    display.draw(&self.pixels, 10);
+                } else {
+                    display.draw(&self.pixels, 20);
+                }
                 self.draw_flag = true;
                 self.pc += 2;
             }
