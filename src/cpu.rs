@@ -429,9 +429,10 @@ impl Cpu {
                 let mut collision = false;
 
                 for j in 0..sprite_h {
-                    let row = self.memory[(self.i + j as u16) as usize];
+                    let row = self.memory[(self.i + j) as usize] as u16;
 
-                    for i in 0..sprite_w { if row & 0x80 >> i != 0 {
+                    // Check if bit is set
+                    for i in 0..sprite_w { if row & 0x80u16 >> i != 0 {
                         if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
                             collision = true;
                             self.v[0xF] = collision as u8;
