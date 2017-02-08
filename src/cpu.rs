@@ -221,7 +221,7 @@ impl Cpu {
                         // 00FC (SCHIP) Scroll screen 4 pixels left
                         0x00FC => {
                             for y in 0..HEIGHT {
-                                for x in (4..WIDTH) {
+                                for x in 4..WIDTH {
                                     self.pixels[y][x] = self.pixels[y][x - 4];
                                 }
                                 for x in 0..4 {
@@ -430,11 +430,11 @@ impl Cpu {
             // Draw sprite starting at x, y which is n lines of 8 pixels stored
             // starting at memory location of self.i
             0xD000 => {
-                let h = self.opcode & 0x000F; // Sprite height
+                let n = self.opcode & 0x000F; // Sprite height
 
                 // Let sprite width be 16 (for 16x16 unless Extended mode is not enabled)
-                let sprite_w = if h == 0 && self.mode == DisplayMode::Extended {16} else {8};
-                let sprite_h = if h == 0 {16} else {h};
+                let sprite_w = if n == 0 {16} else {8};
+                let sprite_h = if n == 0 && self.mode == DisplayMode::Extended {16} else {n};
 
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
@@ -446,7 +446,15 @@ impl Cpu {
                 for j in 0..sprite_h {
                     let row = self.memory[(self.i + j) as usize] as u16;
 
+                    // This renders smaller pixels properly (by multiplying)
+                    // if sprite_w == 8 {
+                    // let row = self.memory[(self.i + j) as usize] as u16;
+                    // } else {
+                    // let row = self.memory[(self.i + j * 2) as usize] as u16;
+
+                    // TODO: 16x16 sprites are only rendered in half for some reason
                     // Check if bit is set
+
                     for i in 0..sprite_w { if row & 0x80u16 >> i != 0 {
                         if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
                             collision = true;
