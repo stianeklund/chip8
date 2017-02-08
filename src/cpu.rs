@@ -2,13 +2,11 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::cmp;
-
 use rand;
 use rand::Rng;
-use display::Display;
 
-use display::{WIDTH, HEIGHT, Mode};
-use DEBUG;
+use display::Display;
+use display::{WIDTH, HEIGHT, DisplayMode};
 
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
@@ -31,6 +29,7 @@ const FONT: [u8; 80] = [
     0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 
 ];
+
 const SUPER_FONT: [u8; 160] = [
     0xFF, 0xFF, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF, // 0
     0x18, 0x78, 0x78, 0x18, 0x18, 0x18, 0x18, 0x18, 0xFF, 0xFF, // 1
@@ -50,6 +49,7 @@ const SUPER_FONT: [u8; 160] = [
     0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0  // F
 ];
 
+
 pub struct Cpu {
     opcode: u16,
     memory: Box<[u8; 4096]>,             // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
@@ -65,11 +65,13 @@ pub struct Cpu {
     rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
     pub pixels: [[bool; WIDTH]; HEIGHT], // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
-    pub mode: Mode,                      // Default & Extended display modes
+    pub debugging: bool,                 // Emulator is either Running or Debugging
+    pub mode: DisplayMode,               // Default & Extended display modes
     pub speed: u8,                       // CPU clock speed
     draw_flag: bool                      // Whether or not to redraw
-                                         // *VF is a special register used to store overflow bit
+    // *VF is a special register used to store overflow bit
 }
+
 
 impl Cpu {
     pub fn new() -> Cpu {
@@ -97,7 +99,8 @@ impl Cpu {
             rpl_flags: [0; 8],
             pixels: [[false; WIDTH]; HEIGHT],
             keypad: [0; 16],
-            mode: Mode::Default,
+            debugging: false,
+            mode: DisplayMode::Default,
             speed: 2,
             draw_flag: false
         }
@@ -127,7 +130,7 @@ impl Cpu {
 
         if self.sound_timer > 0 {
             self.snd_tick -= dt;
-            if DEBUG { println!("BEEP!"); }
+            if self.debugging { println!("BEEP!"); }
             if self.snd_tick <= 0.0 {
                 self.sound_timer -= 1;
                 self.snd_tick = 1.0 / 60.0;
@@ -137,8 +140,10 @@ impl Cpu {
 
     // Fetch high & low bytes & merge
     pub fn run(&mut self, display: &mut Display) {
+
+
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 |
-                      (self.memory[self.pc as usize + 1] as u16);
+        (self.memory[self.pc as usize + 1] as u16);
 
         // Decode Vx & Vy register identifiers.
         let x = ((self.opcode & 0x0F00) >> 8) as usize;
@@ -148,9 +153,9 @@ impl Cpu {
         let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
-        if DEBUG {
-            println!("PC: {:X}  |  Opcode: {:X}  | I: {:#X}, KK:{}, Vx: {}, Mode: {:?}",
-                     self.pc, self.opcode, i_reg, kk, self.v[x], self.mode);
+        while self.debugging {
+            println!("PC: {:#?}  |  Opcode: {:#?}  | I: {:#X}, Vx: {:#?}, DisplayMode: {:#?}, Debugging: {:#?}",
+                     self.pc, self.opcode, self.i, self.v[x], self.mode, self.debugging);
         }
 
         // Relying on the first 4 bits is not enough in this case.
@@ -176,7 +181,7 @@ impl Cpu {
                         self.pc += 2;
                         self.draw_flag = true;
 
-                        if DEBUG { println!("Call to 0x00C0"); }
+                        if self.debugging { println!("Call to 0x00C0"); }
                     }
 
                     _ => match self.opcode & 0x00FF {
@@ -205,7 +210,7 @@ impl Cpu {
                             self.draw_flag = true;
                             self.pc += 2;
 
-                            if DEBUG { println!("Call to 00FB"); }
+                            if self.debugging { println!("Call to 00FB"); }
                         }
 
                         // 00FC (SCHIP) Scroll screen 4 pixels left
@@ -218,25 +223,25 @@ impl Cpu {
                             self.draw_flag = true;
                             self.pc += 2;
 
-                            if DEBUG { println!("Call to 00FB"); }
+                            if self.debugging { println!("Call to 00FB"); }
                         }
 
                         // 00FE (SCHIP) Disable extended screen mode
                         0x00FE => {
-                            self.mode = Mode::Default;
+                            self.mode = DisplayMode::Default;
                             self.pc += 2;
-                            if DEBUG { println!("Call to 00FE (Extended mode disabled"); }
+                            println!("Call to 00FE (Extended mode: {:?}", self.mode);
                         }
                         // 00FD (SCHIP) Exit CHIP8 Interpreter
                         0x00FD => {
                             // TODO
-                            if DEBUG { println!("Call to 00FD (Exit CHIP-8 Interpreter)"); }
+                            if self.debugging { println!("Call to 00FD (Exit CHIP-8 Interpreter)"); }
                         }
                         // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
                         0x00FF => {
-                            self.mode = Mode::Extended;
+                            self.mode = DisplayMode::Extended;
                             self.pc += 2;
-                            if DEBUG { println!("Call to 00FF (Extended mode enabled)"); }
+                            if self.debugging { println!("Call to 00FF (Extended mode enabled)"); }
                         },
 
                         0x0000 => {
@@ -418,7 +423,7 @@ impl Cpu {
                 let h = self.opcode & 0x000F; // Sprite height
 
                 // Let sprite width be 16 (for 16x16 unless Extended mode is not enabled)
-                let sprite_w = if h == 0 && self.mode == Mode::Extended {16} else {8};
+                let sprite_w = if h == 0 && self.mode == DisplayMode::Extended {16} else {8};
                 let sprite_h = if h == 0 {16} else {h};
 
                 let sprite_x = self.v[x] as usize;
@@ -441,7 +446,7 @@ impl Cpu {
                     }
                 }
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
-                if self.mode == Mode::Extended {
+                if self.mode == DisplayMode::Extended {
                     display.draw(&self.pixels, 10);
                 } else {
                     display.draw(&self.pixels, 20);
@@ -488,7 +493,7 @@ impl Cpu {
                     0x000A => {
                         for i in 0..0xF {
                             if self.keypad[i] != 0 {
-                                if DEBUG { println!("Key pressed: {:?}", self.keypad); }
+                                if self.debugging { println!("Key pressed: {:?}", self.keypad); }
                                 self.v[x] = i as u8;
                                 break;
                             }
@@ -526,7 +531,7 @@ impl Cpu {
                     // Create 0x5 font accessible in memory
                     0x0029 => {
                         self.i = (self.v[x].wrapping_mul(5)) as u16;
-                        if DEBUG {
+                        if self.debugging {
                             println!("At FX29. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
                         }
                         self.pc += 2;
@@ -535,7 +540,7 @@ impl Cpu {
                     // FX30 SCHIP Set I to the location of the sprite (10 byte) for digit in VX
                     0x0030 => {
                         self.i = (self.v[x].wrapping_mul(10)) as u16;
-                        if DEBUG {
+                        if self.debugging {
                             println!("At FX30. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
                         }
                         self.pc += 2;
@@ -548,7 +553,7 @@ impl Cpu {
                         self.memory[i_reg + 1] = (self.v[x] / 10) % 10 as u8;
                         self.memory[i_reg + 2] = self.v[x] % 10 as u8;
 
-                          if DEBUG {
+                        if self.debugging {
                             println!("At FX33. Value of Vx: {:b}, Value of i_reg:{:b}",
                                      self.v[x], i_reg);
                         }
