@@ -171,7 +171,7 @@ impl Cpu {
                         // Subtract n from y to scroll down n height
                         for x in 0..WIDTH - 1 {
                             for y in (1..HEIGHT).rev() {
-                                self.pixels[y][x] = self.pixels[y - 1][x];
+                                self.pixels[y][x] = self.pixels[y - n][x];
                             }
                             for y in 0..n { self.pixels[y][x] = false;
                             }
@@ -202,9 +202,14 @@ impl Cpu {
 
                         // 00FB (SCHIP) Scroll screen 4 pixels right
                         0x00FB => {
-                            for y in 0..HEIGHT { for x in (4..WIDTH).rev() {
-                                self.pixels[x][y] = self.pixels[x - 4][y]; } }
-                                for x in 0..4 { self.pixels[x][y] = false; }
+                            for y in 0..HEIGHT {
+                                for x in (4..WIDTH).rev() {
+                                    self.pixels[y][x] = self.pixels[y][x - 4];
+                                }
+                                for x in 0..4 {
+                                    self.pixels[y][x] = false;
+                                }
+                            }
 
                             display.draw(&self.pixels, 10);
                             self.draw_flag = true;
@@ -215,9 +220,14 @@ impl Cpu {
 
                         // 00FC (SCHIP) Scroll screen 4 pixels left
                         0x00FC => {
-                            for y in 0..HEIGHT { for x in 0..WIDTH - 4 {
-                                self.pixels[x][y] = self.pixels[x][y]; } }
-                            for x in (WIDTH - 4)..WIDTH { self.pixels[x][y] = false; }
+                            for y in 0..HEIGHT {
+                                for x in (4..WIDTH) {
+                                    self.pixels[y][x] = self.pixels[y][x - 4];
+                                }
+                                for x in 0..4 {
+                                    self.pixels[y][x] = false;
+                                }
+                            }
 
                             display.draw(&self.pixels, 10);
                             self.draw_flag = true;
@@ -230,7 +240,7 @@ impl Cpu {
                         0x00FE => {
                             self.mode = DisplayMode::Default;
                             self.pc += 2;
-                            println!("Call to 00FE (Extended mode: {:?}", self.mode);
+                            if self.debugging { println!("Call to 00FE (Extended mode: {:?}", self.mode); }
                         }
                         // 00FD (SCHIP) Exit CHIP8 Interpreter
                         0x00FD => {
