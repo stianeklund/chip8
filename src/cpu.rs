@@ -66,7 +66,7 @@ pub struct Cpu {
     pub pixels: [[bool; WIDTH]; HEIGHT], // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
     pub debugging: bool,                 // Emulator is either Running or Debugging
-    pub mode: DisplayMode,               // Default & Extended display modes
+    pub mode: DisplayMode,               // Normal & Extended display modes
     pub speed: u8,                       // CPU clock speed
     draw_flag: bool                      // Whether or not to redraw
     // *VF is a special register used to store overflow bit
@@ -100,7 +100,7 @@ impl Cpu {
             pixels: [[false; WIDTH]; HEIGHT],
             keypad: [0; 16],
             debugging: false,
-            mode: DisplayMode::Default,
+            mode: DisplayMode::Normal,
             speed: 2,
             draw_flag: false
         }
@@ -238,7 +238,7 @@ impl Cpu {
 
                         // 00FE (SCHIP) Disable extended screen mode
                         0x00FE => {
-                            self.mode = DisplayMode::Default;
+                            self.mode = DisplayMode::Normal;
                             self.pc += 2;
                             if self.debugging { println!("Call to 00FE (Extended mode: {:?}", self.mode); }
                         }
@@ -444,13 +444,14 @@ impl Cpu {
                 let mut collision = false;
 
                 for j in 0..sprite_h {
-                    let row = self.memory[(self.i + j) as usize] as u16;
+                    let mut row = self.memory[(self.i + j) as usize] as u16;
 
                     // This renders smaller pixels properly (by multiplying)
                     // if sprite_w == 8 {
-                    // let row = self.memory[(self.i + j) as usize] as u16;
+                      //  let mut row = self.memory[(self.i + j) as usize] as u16;
                     // } else {
-                    // let row = self.memory[(self.i + j * 2) as usize] as u16;
+                      //  let row = self.memory[(self.i + j / 2) as usize] as u16;
+                    // }
 
                     // TODO: 16x16 sprites are only rendered in half for some reason
                     // Check if bit is set

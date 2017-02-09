@@ -8,7 +8,7 @@ pub const WIDTH: usize = 128;
 pub const HEIGHT: usize = 64;
 
 #[derive(PartialEq, Debug)]
-pub enum DisplayMode { Default, Extended}
+pub enum DisplayMode { Normal, Extended }
 
 pub struct Display<'a> {
     pub renderer: sdl2::render::Renderer<'a>,
