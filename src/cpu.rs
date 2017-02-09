@@ -154,7 +154,7 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if self.mode.debug == true {
-            println!("PC: {:#?}  |  Opcode: {:#?}  | I: {:#X}, Vx: {:#?}, DisplayMode: {:#?}, \n Debugging: {:?}", self.pc, self.opcode, self.i, self.v[x], self.display_mode, self.mode);
+            println!("PC: {:#?}  |  Opcode: {:#?}  | I: {:#X}, Vx: {:#?}, DisplayMode: {:#?}", self.pc, self.opcode, self.i, self.v[x], self.display_mode);
         }
 
         // Relying on the first 4 bits is not enough in this case.

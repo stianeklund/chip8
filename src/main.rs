@@ -69,8 +69,8 @@ fn main() {
         match keypad.key_press(&mut cpu.keypad) {
             keypad::State::Exit => break 'run,
             keypad::State::Continue => {}
-            keypad::State::Debug => { speed = 1; cpu.mode.debug = true; println!("Debug {}", cpu.mode.debug);}
-            keypad::State::StopDebug => { speed = 1; cpu.mode.debug = false; println!("Debug off"); }
+            keypad::State::Debug => { speed = 1; cpu.mode.debug = true; println!("Debug enabled");}
+            keypad::State::StopDebug => { speed = 1; cpu.mode.normal= true; cpu.mode.debug = false; println!("Debug off"); }
             keypad::State::Increase => { speed = speed.wrapping_add(1); println!("Speed: {}", speed); }
             keypad::State::Decrease => { speed = speed.wrapping_sub(1); println!("Speed: {}", speed); }
         }
