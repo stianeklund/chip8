@@ -8,29 +8,6 @@ mod keypad;
 use std::env;
 use display::Display;
 
-#[derive(Debug, Clone, Copy)]
-pub struct Mode {
-    pub debug: bool,
-    pub normal: bool,
-
-}
-impl Mode {
-    pub fn normal_mode() -> Mode {
-        Mode {
-            debug: false,
-            normal: true,
-        }
-    }
-
-    pub fn debug_mode() -> Mode {
-    Mode {
-        debug: true,
-        normal: false,
-    }
-}
-
-}
-
 fn main() {
 
     let args: Vec<String> = env::args().collect();
@@ -69,8 +46,8 @@ fn main() {
         match keypad.key_press(&mut cpu.keypad) {
             keypad::State::Exit => break 'run,
             keypad::State::Continue => {}
-            keypad::State::Debug => { speed = 1; cpu.mode.debug = true; println!("Debug enabled");}
-            keypad::State::StopDebug => { speed = 1; cpu.mode.normal= true; cpu.mode.debug = false; println!("Debug off"); }
+            keypad::State::Debug => { cpu.mode.debug = true; println!("Debug enabled");}
+            keypad::State::StopDebug => { cpu.mode.normal= true; cpu.mode.debug = false; println!("Debug off"); }
             keypad::State::Increase => { speed = speed.wrapping_add(1); println!("Speed: {}", speed); }
             keypad::State::Decrease => { speed = speed.wrapping_sub(1); println!("Speed: {}", speed); }
         }

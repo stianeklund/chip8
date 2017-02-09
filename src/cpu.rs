@@ -7,7 +7,29 @@ use rand::Rng;
 
 use display::Display;
 use display::{WIDTH, HEIGHT, DisplayMode};
-use Mode;
+
+#[derive(Debug, Clone, Copy)]
+pub struct Mode {
+    pub debug: bool,
+    pub normal: bool,
+
+}
+impl Mode {
+    pub fn normal_mode() -> Mode {
+    Mode {
+        debug: false,
+        normal: true,
+    }
+}
+
+pub fn debug_mode() -> Mode {
+Mode {
+    debug: true,
+    normal: false,
+}
+    }
+
+}
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
 const FONT: [u8; 80] = [
