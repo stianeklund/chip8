@@ -7,7 +7,7 @@ use rand::Rng;
 
 use display::Display;
 use display::{WIDTH, HEIGHT, DisplayMode};
-
+use Mode;
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
 const FONT: [u8; 80] = [
@@ -49,7 +49,6 @@ const SUPER_FONT: [u8; 160] = [
     0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0  // F
 ];
 
-
 pub struct Cpu {
     opcode: u16,
     memory: Box<[u8; 4096]>,             // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
@@ -65,8 +64,8 @@ pub struct Cpu {
     rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
     pub pixels: [[bool; WIDTH]; HEIGHT], // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
-    pub debugging: bool,                 // Emulator is either Running or Debugging
-    pub mode: DisplayMode,               // Normal & Extended display modes
+    pub mode: Mode,                      // Emulator is either Running or Debugging
+    pub display_mode: DisplayMode,       // Normal & Extended display modes
     pub speed: u8,                       // CPU clock speed
     draw_flag: bool                      // Whether or not to redraw
     // *VF is a special register used to store overflow bit
@@ -76,6 +75,8 @@ pub struct Cpu {
 impl Cpu {
     pub fn new() -> Cpu {
         let mut memory = Box::new([0; 4096]);
+
+        // let mut debug = Mode { normal: true, debug: false};
 
         // Load sprites into memory (load first set of fonts into memory, then load SuperCHIP fonts)
         if memory.lt(&[80]) {
@@ -99,8 +100,8 @@ impl Cpu {
             rpl_flags: [0; 8],
             pixels: [[false; WIDTH]; HEIGHT],
             keypad: [0; 16],
-            debugging: false,
-            mode: DisplayMode::Normal,
+            mode: Mode {normal: true, debug: false},
+            display_mode: DisplayMode::Normal,
             speed: 2,
             draw_flag: false
         }
@@ -130,7 +131,8 @@ impl Cpu {
 
         if self.sound_timer > 0 {
             self.snd_tick -= dt;
-            if self.debugging { println!("BEEP!"); }
+            if self.mode.debug { println!("BEEP");
+            }
             if self.snd_tick <= 0.0 {
                 self.sound_timer -= 1;
                 self.snd_tick = 1.0 / 60.0;
@@ -153,9 +155,10 @@ impl Cpu {
         let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
-        while self.debugging {
-            println!("PC: {:#?}  |  Opcode: {:#?}  | I: {:#X}, Vx: {:#?}, DisplayMode: {:#?}, Debugging: {:#?}",
-                     self.pc, self.opcode, self.i, self.v[x], self.mode, self.debugging);
+        println!("self.mode {:?}",self.mode);
+        if self.mode.debug == true {
+            println!("PC: {:#?}  |  Opcode: {:#?}  | I: {:#X}, Vx: {:#?}, DisplayMode: {:#?}, \n Debugging: {:?}",
+                     self.pc, self.opcode, self.i, self.v[x], self.display_mode, self.mode);
         }
 
         // Relying on the first 4 bits is not enough in this case.
@@ -167,13 +170,14 @@ impl Cpu {
                     // 00CN SCHIP Scroll down N lines
                     0x00C0 => {
                         let n = (self.opcode & 0x000F) as usize;
+                        let size = if self.display_mode == DisplayMode::Extended {n} else {n / 2};
 
                         // Subtract n from y to scroll down n height
                         for x in 0..WIDTH - 1 {
                             for y in (1..HEIGHT).rev() {
-                                self.pixels[y][x] = self.pixels[y - n][x];
+                                self.pixels[y][x] = self.pixels[y - size][x];
                             }
-                            for y in 0..n { self.pixels[y][x] = false;
+                            for y in 0..size { self.pixels[y][x] = false;
                             }
                         }
 
@@ -181,7 +185,7 @@ impl Cpu {
                         self.pc += 2;
                         self.draw_flag = true;
 
-                        if self.debugging { println!("Call to 0x00C0"); }
+                        if self.mode.debug { println!("Call to 0x00C0"); }
                     }
 
                     _ => match self.opcode & 0x00FF {
@@ -202,56 +206,64 @@ impl Cpu {
 
                         // 00FB (SCHIP) Scroll screen 4 pixels right
                         0x00FB => {
+                            let size = if self.display_mode == DisplayMode::Extended {4} else {2};
+
                             for y in 0..HEIGHT {
-                                for x in (4..WIDTH).rev() {
-                                    self.pixels[y][x] = self.pixels[y][x - 4];
+                                for x in (size..WIDTH).rev() {
+                                    self.pixels[y][x] = self.pixels[y][x - size];
                                 }
-                                for x in 0..4 {
+
+                                for x in 0..size {
                                     self.pixels[y][x] = false;
                                 }
                             }
 
                             display.draw(&self.pixels, 10);
+
                             self.draw_flag = true;
                             self.pc += 2;
 
-                            if self.debugging { println!("Call to 00FB"); }
+                            if self.mode.debug { println!("Call to 00FB"); }
                         }
 
                         // 00FC (SCHIP) Scroll screen 4 pixels left
                         0x00FC => {
+                            let size = if self.display_mode == DisplayMode::Extended {4} else {2};
+
                             for y in 0..HEIGHT {
-                                for x in 4..WIDTH {
-                                    self.pixels[y][x] = self.pixels[y][x - 4];
+                                for x in size..WIDTH {
+                                    self.pixels[y][x] = self.pixels[y][x - size];
                                 }
-                                for x in 0..4 {
+
+                                for x in 0..size {
                                     self.pixels[y][x] = false;
                                 }
                             }
 
                             display.draw(&self.pixels, 10);
+
                             self.draw_flag = true;
                             self.pc += 2;
 
-                            if self.debugging { println!("Call to 00FB"); }
+                            if self.mode.debug { println!("Call to 00FB"); }
                         }
 
                         // 00FE (SCHIP) Disable extended screen mode
                         0x00FE => {
-                            self.mode = DisplayMode::Normal;
+                            self.display_mode = DisplayMode::Normal;
                             self.pc += 2;
-                            if self.debugging { println!("Call to 00FE (Extended mode: {:?}", self.mode); }
+                            if self.mode.debug { println!("Call to 00FE (Extended mode: {:?}", self.mode); }
                         }
                         // 00FD (SCHIP) Exit CHIP8 Interpreter
                         0x00FD => {
                             // TODO
-                            if self.debugging { println!("Call to 00FD (Exit CHIP-8 Interpreter)"); }
+                            if self.mode.debug { println!("Call to 00FD (Exit CHIP-8 Interpreter)"); }
                         }
                         // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
                         0x00FF => {
-                            self.mode = DisplayMode::Extended;
+                            self.display_mode = DisplayMode::Extended;
                             self.pc += 2;
-                            if self.debugging { println!("Call to 00FF (Extended mode enabled)"); }
+                            if self.mode.debug { println!("Call to 00FF (Extended mode enabled)"); }
                         },
 
                         0x0000 => {
@@ -434,7 +446,8 @@ impl Cpu {
 
                 // Let sprite width be 16 (for 16x16 unless Extended mode is not enabled)
                 let sprite_w = if n == 0 {16} else {8};
-                let sprite_h = if n == 0 && self.mode == DisplayMode::Extended {16} else {n};
+                let sprite_h = if n == 0 && self.display_mode == DisplayMode::Extended {16} else {n};
+                if self.mode.debug { println!("Sprite height: {}, n: {}", sprite_h, n); };
 
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
@@ -444,35 +457,30 @@ impl Cpu {
                 let mut collision = false;
 
                 for j in 0..sprite_h {
-                    let mut row = self.memory[(self.i + j) as usize] as u16;
-
-                    // This renders smaller pixels properly (by multiplying)
-                    // if sprite_w == 8 {
-                      //  let mut row = self.memory[(self.i + j) as usize] as u16;
-                    // } else {
-                      //  let row = self.memory[(self.i + j / 2) as usize] as u16;
-                    // }
+                    let row = self.memory[(self.i + j) as usize] as u16;
 
                     // TODO: 16x16 sprites are only rendered in half for some reason
                     // Check if bit is set
 
-                    for i in 0..sprite_w { if row & 0x80u16 >> i != 0 {
-                        if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
-                            collision = true;
-                            self.v[0xF] = collision as u8;
+                    for i in 0..sprite_w {
+                        if row & 0x80u16 >> i != 0 {
+                            if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
+                                collision = true;
+                                self.v[0xF] = collision as u8;
+                            }
+                            self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] ^= true;
                         }
-                        self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] ^= true; }
                     }
                 }
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
-                if self.mode == DisplayMode::Extended {
+                if self.display_mode == DisplayMode::Extended {
                     display.draw(&self.pixels, 10);
                 } else {
                     display.draw(&self.pixels, 20);
                 }
                 self.draw_flag = true;
                 self.pc += 2;
-            }
+}
 
             0xE000 => {
                 match self.opcode & 0x00FF {
@@ -512,7 +520,7 @@ impl Cpu {
                     0x000A => {
                         for i in 0..0xF {
                             if self.keypad[i] != 0 {
-                                if self.debugging { println!("Key pressed: {:?}", self.keypad); }
+                                if self.mode.debug { println!("Key pressed: {:?}", self.keypad); }
                                 self.v[x] = i as u8;
                                 break;
                             }
@@ -550,7 +558,7 @@ impl Cpu {
                     // Create 0x5 font accessible in memory
                     0x0029 => {
                         self.i = (self.v[x].wrapping_mul(5)) as u16;
-                        if self.debugging {
+                        if self.mode.debug {
                             println!("At FX29. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
                         }
                         self.pc += 2;
@@ -559,7 +567,7 @@ impl Cpu {
                     // FX30 SCHIP Set I to the location of the sprite (10 byte) for digit in VX
                     0x0030 => {
                         self.i = (self.v[x].wrapping_mul(10)) as u16;
-                        if self.debugging {
+                        if self.mode.debug {
                             println!("At FX30. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
                         }
                         self.pc += 2;
@@ -572,7 +580,7 @@ impl Cpu {
                         self.memory[i_reg + 1] = (self.v[x] / 10) % 10 as u8;
                         self.memory[i_reg + 2] = self.v[x] % 10 as u8;
 
-                        if self.debugging {
+                        if self.mode.debug {
                             println!("At FX33. Value of Vx: {:b}, Value of i_reg:{:b}",
                                      self.v[x], i_reg);
                         }
