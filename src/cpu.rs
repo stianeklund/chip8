@@ -76,8 +76,6 @@ impl Cpu {
     pub fn new() -> Cpu {
         let mut memory = Box::new([0; 4096]);
 
-        // let mut debug = Mode { normal: true, debug: false};
-
         // Load sprites into memory (load first set of fonts into memory, then load SuperCHIP fonts)
         if memory.lt(&[80]) {
             memory[0..80].copy_from_slice(&FONT[0..80]);
@@ -155,10 +153,8 @@ impl Cpu {
         let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
-        println!("self.mode {:?}",self.mode);
         if self.mode.debug == true {
-            println!("PC: {:#?}  |  Opcode: {:#?}  | I: {:#X}, Vx: {:#?}, DisplayMode: {:#?}, \n Debugging: {:?}",
-                     self.pc, self.opcode, self.i, self.v[x], self.display_mode, self.mode);
+            println!("PC: {:#?}  |  Opcode: {:#?}  | I: {:#X}, Vx: {:#?}, DisplayMode: {:#?}, \n Debugging: {:?}", self.pc, self.opcode, self.i, self.v[x], self.display_mode, self.mode);
         }
 
         // Relying on the first 4 bits is not enough in this case.
