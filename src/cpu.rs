@@ -101,6 +101,7 @@ impl Cpu {
         // Load sprites into memory (load first set of fonts into memory, then load SuperCHIP fonts)
         if memory.lt(&[80]) {
             memory[0..80].copy_from_slice(&FONT[0..80]);
+
         } else if memory.lt(&[160]) {
             memory[0..160].copy_from_slice(&SUPER_FONT[0..160]);
         }
@@ -135,6 +136,7 @@ impl Cpu {
         file.read_to_end(&mut buf).expect("Failed to read file");
 
         if buf.len() >= 3585 { panic!("ROM is too large, size: {}", buf.len()); }
+
         let buf_len = buf.len();
         for i in 0..buf_len { self.memory[i + 512] = buf[i]; }
     }
@@ -151,8 +153,8 @@ impl Cpu {
 
         if self.sound_timer > 0 {
             self.snd_tick -= dt;
-            if self.mode.debug { println!("BEEP");
-            }
+            if self.mode.debug { println!("BEEP"); }
+
             if self.snd_tick <= 0.0 {
                 self.sound_timer -= 1;
                 self.snd_tick = 1.0 / 60.0;
@@ -176,8 +178,11 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if self.mode.debug == true {
-            println!("PC: {:#?}  |  Opcode: {:#?}  | I: {:#X}, Vx: {:#?}, DisplayMode: {:#?}", self.pc, self.opcode, self.i, self.v[x], self.display_mode);
+            println!(
+                "PC: {:#?}  |  Opcode: {:#?}  | I: {:#X}, Vx: {:#?}, DisplayMode: {:#?}",
+                self.pc, self.opcode, self.i, self.v[x], self.display_mode);
         }
+
 
         // Relying on the first 4 bits is not enough in this case.
         // We need to compare the last four bits, hence the second match block.
@@ -200,6 +205,7 @@ impl Cpu {
                         }
 
                         display.draw(&self.pixels, 10);
+
                         self.pc += 2;
                         self.draw_flag = true;
 
@@ -270,13 +276,17 @@ impl Cpu {
                         0x00FE => {
                             self.display_mode = DisplayMode::Normal;
                             self.pc += 2;
-                            if self.mode.debug { println!("Call to 00FE (Extended mode: {:?}", self.mode); }
+                            if self.mode.debug {
+                                println!("Call to 00FE (Extended mode: {:?}", self.mode);
+                            }
                         }
+
                         // 00FD (SCHIP) Exit CHIP8 Interpreter
                         0x00FD => {
                             // TODO
                             if self.mode.debug { println!("Call to 00FD (Exit CHIP-8 Interpreter)"); }
                         }
+
                         // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
                         0x00FF => {
                             self.display_mode = DisplayMode::Extended;
@@ -297,7 +307,7 @@ impl Cpu {
                 self.pc = nnn;
             }
 
-            // 2NNN Call subroutine at address nnn
+            // 2NNN Call suboutine at address nnn
             0x2000 => {
                 self.stack[self.sp as usize] = self.pc;
                 // Stack size is 16 so we need to wrap this
@@ -309,6 +319,7 @@ impl Cpu {
             0x3000 => {
                 if self.v[x] == kk as u8 {
                     self.pc += 4;
+
                 } else {
                     self.pc += 2;
                 }
@@ -318,6 +329,7 @@ impl Cpu {
             0x4000 => {
                 if self.v[x] != kk as u8 {
                     self.pc += 4;
+
                 } else {
                     self.pc += 2;
                 }
@@ -327,6 +339,7 @@ impl Cpu {
             0x5000 => {
                 if self.v[x] == self.v[y] {
                     self.pc += 4;
+
                 } else {
                     self.pc += 2;
                 }
@@ -463,9 +476,9 @@ impl Cpu {
                 let n = self.opcode & 0x000F; // Sprite height
 
                 // Let sprite width be 16 (for 16x16 unless Extended mode is not enabled)
-                let sprite_w = if n == 0 {16} else {8};
-                let sprite_h = if n == 0 && self.display_mode == DisplayMode::Extended {16} else {n};
-                if self.mode.debug { println!("Sprite height: {}, n: {}", sprite_h, n); };
+                let w = if n == 0 {16} else {8};
+                let h = if n == 0 && self.display_mode == DisplayMode::Extended {16} else {n};
+                if self.mode.debug { println!("Sprite height: {}, n: {}", h, n); };
 
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
@@ -474,28 +487,30 @@ impl Cpu {
                 self.v[0xF] = 0;
                 let mut collision = false;
 
-                for j in 0..sprite_h {
+                for j in 0..h {
                     let row = self.memory[(self.i + j) as usize] as u16;
 
                     // TODO: 16x16 sprites are only rendered in half for some reason
                     // Check if bit is set
 
-                    for i in 0..sprite_w {
+                    for i in 0..w {
                         if row & 0x80u16 >> i != 0 {
                             if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
                                 collision = true;
                                 self.v[0xF] = collision as u8;
                             }
+
                             self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] ^= true;
                         }
                     }
                 }
+
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
-                if self.display_mode == DisplayMode::Extended {
-                    display.draw(&self.pixels, 10);
+                if self.display_mode == DisplayMode::Extended { display.draw(&self.pixels, 10);
                 } else {
                     display.draw(&self.pixels, 20);
                 }
+
                 self.draw_flag = true;
                 self.pc += 2;
 }

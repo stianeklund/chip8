@@ -46,10 +46,17 @@ fn main() {
         match keypad.key_press(&mut cpu.keypad) {
             keypad::State::Exit => break 'run,
             keypad::State::Continue => {}
-            keypad::State::Debug => { cpu.mode.debug = true; println!("Debug enabled");}
-            keypad::State::StopDebug => { cpu.mode.normal= true; cpu.mode.debug = false; println!("Debug off"); }
-            keypad::State::Increase => { speed = speed.wrapping_add(1); println!("Speed: {}", speed); }
-            keypad::State::Decrease => { speed = speed.wrapping_sub(1); println!("Speed: {}", speed); }
+
+            // TODO Enable & disable debug mode with the same key..
+            keypad::State::Debug => {
+                cpu.mode.debug = true; println!("Debug enabled");}
+            keypad::State::StopDebug => {
+                cpu.mode.normal= true; cpu.mode.debug = false; println!("Debug off"); }
+
+            keypad::State::Increase => {
+                speed = speed.wrapping_add(1); println!("Speed: {}", speed); }
+            keypad::State::Decrease => {
+                speed = speed.wrapping_sub(1); println!("Speed: {}", speed); }
         }
         // Execute & decode opcodes 2 times for every time we loop
         cpu.step(speed, &mut display);
@@ -63,10 +70,10 @@ fn main() {
         fps += 1;
 
         if now - last_second > 1000 {
-            // if DEBUG { println!("FPS: {}", fps); }
             last_second = now;
             fps = 0;
         }
+
         cpu.update_timers(dt as f32);
     }
 }
