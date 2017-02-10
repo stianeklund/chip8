@@ -162,6 +162,22 @@ impl Cpu {
         }
     }
 
+    pub fn reset(&mut self) {
+
+        for v in &mut self.v {
+            *v = 0;
+        }
+
+        self.i = 0;
+        self.pc = 0x200;
+        self.sp = 0;
+        self.delay_timer = 0;
+        self.sound_timer = 0;
+
+        self.pixels = [[false; WIDTH]; HEIGHT];
+        self.draw_flag = true;
+    }
+
     // Fetch high & low bytes & merge
     pub fn run(&mut self, display: &mut Display) {
 
@@ -216,7 +232,7 @@ impl Cpu {
 
                         // 00E0 (CLS) Clear screen
                         0x00E0 => {
-                            self.pixels = [[false; 128]; 64];
+                            self.pixels = [[false; WIDTH]; HEIGHT];
                             self.draw_flag = true;
                             self.pc += 2;
                         }
@@ -255,11 +271,11 @@ impl Cpu {
                             let size = if self.display_mode == DisplayMode::Extended {4} else {2};
 
                             for y in 0..HEIGHT {
-                                for x in size..WIDTH {
-                                    self.pixels[y][x] = self.pixels[y][x - size];
+                                for x in 0..(WIDTH - size) {
+                                    self.pixels[y][x] = self.pixels[y][x + size];
                                 }
 
-                                for x in 0..size {
+                                for x in (WIDTH - size)..WIDTH {
                                     self.pixels[y][x] = false;
                                 }
                             }
@@ -276,6 +292,8 @@ impl Cpu {
                         0x00FE => {
                             self.display_mode = DisplayMode::Normal;
                             self.pc += 2;
+
+
                             if self.mode.debug {
                                 println!("Call to 00FE (Extended mode: {:?}", self.mode);
                             }
@@ -283,8 +301,11 @@ impl Cpu {
 
                         // 00FD (SCHIP) Exit CHIP8 Interpreter
                         0x00FD => {
-                            // TODO
+
                             if self.mode.debug { println!("Call to 00FD (Exit CHIP-8 Interpreter)"); }
+
+                            // Reset instead of exiting interpreter
+                            self.reset()
                         }
 
                         // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
@@ -609,30 +630,31 @@ impl Cpu {
                     // & places the hundreds digit in memory at location in I,
                     // the tens digit at location I+1, and the ones digit at location I+2.
                     0x0033 => {
-                        self.memory[i_reg] = (self.v[x] / 100) as u8;
-                        self.memory[i_reg + 1] = (self.v[x] / 10) % 10 as u8;
-                        self.memory[i_reg + 2] = self.v[x] % 10 as u8;
+                        self.memory[i_reg] = self.v[x] / 100;
+                        self.memory[i_reg + 1] = self.v[x] % 100 / 10;
+                        self.memory[i_reg + 2] = self.v[x] % 10;
 
-                        if self.mode.debug {
-                            println!("At FX33. Value of Vx: {:b}, Value of i_reg:{:b}",
-                                     self.v[x], i_reg);
-                        }
+                        if self.mode.debug { println!("BCD Vx: {:b}, i_reg:{:b}", self.v[x], i_reg); }
+
                         self.pc += 2;
                     }
 
                     // FX55 Stores V0 to VX in memory starting at I
                     0x0055 => {
                         for index in 0..(x + 1) {
-                            self.memory[self.i as usize + index] = self.v[index];
+                            self.memory[self.i as usize + index] = self.v[index as usize];
                         }
+
                         self.pc += 2;
                     }
 
                     // FX65 Fills V0 to VX with values from memory starting at I
                     0x0065 => {
+
                         for index in 0..(x + 1) {
                             self.v[x] = self.memory[self.i as usize + index];
                         }
+
                         self.pc += 2;
                     }
 
@@ -649,6 +671,7 @@ impl Cpu {
                         for index in 0..(cmp::max(x as usize, 7) + 1) {
                             self.v[index] = self.rpl_flags[index];
                         }
+
                         self.pc += 2;
                     }
                     _ => println!("Unknown opcode: 0x00FF {:X}", self.opcode),
