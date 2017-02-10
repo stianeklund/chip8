@@ -220,7 +220,7 @@ impl Cpu {
                             }
                         }
 
-                        display.draw(&self.pixels, 10);
+                        display.draw(&self.pixels, 10, 10);
 
                         self.pc += 2;
                         self.draw_flag = true;
@@ -258,7 +258,7 @@ impl Cpu {
                                 }
                             }
 
-                            display.draw(&self.pixels, 10);
+                            display.draw(&self.pixels, 10, 10);
 
                             self.draw_flag = true;
                             self.pc += 2;
@@ -280,7 +280,7 @@ impl Cpu {
                                 }
                             }
 
-                            display.draw(&self.pixels, 10);
+                            display.draw(&self.pixels, 10, 10);
 
                             self.draw_flag = true;
                             self.pc += 2;
@@ -527,9 +527,9 @@ impl Cpu {
                 }
 
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
-                if self.display_mode == DisplayMode::Extended { display.draw(&self.pixels, 10);
+                if self.display_mode == DisplayMode::Extended { display.draw(&self.pixels, 10, 10);
                 } else {
-                    display.draw(&self.pixels, 20);
+                    display.draw(&self.pixels, 20, 20);
                 }
 
                 self.draw_flag = true;
@@ -650,7 +650,8 @@ impl Cpu {
 
                     // FX65 Fills V0 to VX with values from memory starting at I
                     0x0065 => {
-
+                        // SC_Test Error: 0
+                        // "Problems with Fx65 instruction. Can't load zeroes from memory to registers"
                         for index in 0..(x + 1) {
                             self.v[x] = self.memory[self.i as usize + index];
                         }

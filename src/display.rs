@@ -39,7 +39,7 @@ impl<'a> Display<'a> {
         }
     }
 
-    pub fn draw(&mut self, pixels: &[[bool; WIDTH]; HEIGHT], scale: i32) {
+    pub fn draw(&mut self, pixels: &[[bool; WIDTH]; HEIGHT], clamp_pos: i32, clamp_size: u32) {
         for y in 0..HEIGHT {
             for x in 0..WIDTH {
                 if pixels[y][x] {
@@ -49,9 +49,9 @@ impl<'a> Display<'a> {
                     // Background
                     self.renderer.set_draw_color(Color::RGB(69, 133, 149));
                 }
-                // Allow different scale size depeding on mode
+                // x, y, w, h
                 self.renderer.fill_rect(
-                    Rect::new(x as i32 * scale, y as i32 * scale, scale as u32, scale as u32 )).unwrap();
+                    Rect::new(x as i32 * clamp_pos, y as i32 * clamp_pos, clamp_size as u32, clamp_size as u32 )).unwrap();
             }
         }
         self.renderer.present();
