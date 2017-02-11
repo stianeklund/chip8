@@ -19,4 +19,5 @@ Sources used:
 
 On Pixel drawing:
 
+* http://laurencescotford.co.uk/?p=304 (Written with the Cosmac VIP in mind. Gives a good visualization of how drawing works in relation to memory addresses).
 * http://craigthomas.ca/blog/2015/02/19/writing-a-chip-8-emulator-draw-command-part-3/

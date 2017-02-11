@@ -14,22 +14,23 @@ pub struct Mode {
     pub normal: bool,
 
 }
+
 impl Mode {
     pub fn normal_mode() -> Mode {
-    Mode {
-        debug: false,
-        normal: true,
+        Mode {
+            debug: false,
+            normal: true,
+        }
+    }
+
+    pub fn debug_mode() -> Mode {
+        Mode {
+            debug: true,
+            normal: false,
+        }
     }
 }
 
-pub fn debug_mode() -> Mode {
-Mode {
-    debug: true,
-    normal: false,
-}
-    }
-
-}
 // Load built-in fonts into memory
 // Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
 const FONT: [u8; 80] = [
@@ -163,7 +164,6 @@ impl Cpu {
     }
 
     pub fn reset(&mut self) {
-
         for v in &mut self.v {
             *v = 0;
         }
@@ -171,6 +171,7 @@ impl Cpu {
         self.i = 0;
         self.pc = 0x200;
         self.sp = 0;
+
         self.delay_timer = 0;
         self.sound_timer = 0;
 
@@ -178,10 +179,9 @@ impl Cpu {
         self.draw_flag = true;
     }
 
+
     // Fetch high & low bytes & merge
     pub fn run(&mut self, display: &mut Display) {
-
-
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 |
         (self.memory[self.pc as usize + 1] as u16);
 
@@ -195,7 +195,7 @@ impl Cpu {
 
         if self.mode.debug == true {
             println!(
-                "PC: {:#?}  |  Opcode: {:#?}  | I: {:#X}, Vx: {:#?}, DisplayMode: {:#?}",
+                "PC: {:#?}  |  Opcode: {:X}  |   I: {:#X}   |   Vx: {:#?}  |   DisplayMode: {:#?}",
                 self.pc, self.opcode, self.i, self.v[x], self.display_mode);
         }
 
@@ -331,7 +331,8 @@ impl Cpu {
             // 2NNN Call suboutine at address nnn
             0x2000 => {
                 self.stack[self.sp as usize] = self.pc;
-                // Stack size is 16 so we need to wrap this
+
+                // Stack size is 16 so we need to wrap
                 self.sp = self.sp.wrapping_add(1);
                 self.pc = nnn;
             }
@@ -490,16 +491,15 @@ impl Cpu {
                 self.pc += 2;
             }
 
-            // DXYN Draw to display
-            // Draw sprite starting at x, y which is n lines of 8 pixels stored
-            // starting at memory location of self.i
+            // DXYN Draw sprite starting at x, y, n specifies how many bytes the sprite is
+            // Starting at memory location of self.i
             0xD000 => {
                 let n = self.opcode & 0x000F; // Sprite height
 
                 // Let sprite width be 16 (for 16x16 unless Extended mode is not enabled)
                 let w = if n == 0 {16} else {8};
                 let h = if n == 0 && self.display_mode == DisplayMode::Extended {16} else {n};
-                if self.mode.debug { println!("Sprite height: {}, n: {}", h, n); };
+                if self.mode.debug { println!("Sprite width: {}, height: {}", w, h); };
 
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
@@ -527,7 +527,8 @@ impl Cpu {
                 }
 
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
-                if self.display_mode == DisplayMode::Extended { display.draw(&self.pixels, 10, 10);
+                if self.display_mode == DisplayMode::Extended {
+                    display.draw(&self.pixels, 10, 10);
                 } else {
                     display.draw(&self.pixels, 20, 20);
                 }
@@ -641,8 +642,9 @@ impl Cpu {
 
                     // FX55 Stores V0 to VX in memory starting at I
                     0x0055 => {
-                        for index in 0..(x + 1) {
+                        for index in 0..x + 1 {
                             self.memory[self.i as usize + index] = self.v[index as usize];
+
                         }
 
                         self.pc += 2;
@@ -652,7 +654,7 @@ impl Cpu {
                     0x0065 => {
                         // SC_Test Error: 0
                         // "Problems with Fx65 instruction. Can't load zeroes from memory to registers"
-                        for index in 0..(x + 1) {
+                        for index in 0..x + 1 {
                             self.v[x] = self.memory[self.i as usize + index];
                         }
 
@@ -681,6 +683,7 @@ impl Cpu {
             _ => println!("Unknown opcode: {:X}", self.opcode),
         };
     }
+
     // Execute fn run() n times
     pub fn step(&mut self, times: u8, mut display: &mut Display) {
         for _ in 0..times {
