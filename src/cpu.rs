@@ -31,8 +31,6 @@ impl Mode {
     }
 }
 
-// Load built-in fonts into memory
-// Ref: http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#2.4
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -99,7 +97,7 @@ impl Cpu {
     pub fn new() -> Cpu {
         let mut memory = Box::new([0; 4096]);
 
-        // Load sprites into memory (load first set of fonts into memory, then load SuperCHIP fonts)
+        // Load sprites into memory. Load CHIP-8 fonts, then load SuperCHIP fonts
         if memory.lt(&[80]) {
             memory[0..80].copy_from_slice(&FONT[0..80]);
 
@@ -513,18 +511,23 @@ impl Cpu {
 
                     // TODO: 16x16 sprites are only rendered in half for some reason
                     // Check if bit is set
-
                     for i in 0..w {
-                        if row & 0x80u16 >> i != 0 {
-                            if self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] {
-                                collision = true;
-                                self.v[0xF] = collision as u8;
-                            }
+                        let xi = ((sprite_x + i as usize) % WIDTH) as usize;
+                        let yj = ((sprite_y + j as usize) % HEIGHT) as usize;
 
-                            self.pixels[(sprite_y + j as usize) % HEIGHT][(sprite_x + i as usize) % WIDTH] ^= true;
+                        if row & (0x80 >> i) != 0 {
+                            if self.pixels[yj][xi] == true {
+                                collision = true
+                            };
+
+                            self.pixels[yj][xi] = !self.pixels[yj][xi];
                         }
                     }
                 }
+
+                // Set collision flag
+                self.v[0xF] = collision as u8;
+                collision;
 
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
                 if self.display_mode == DisplayMode::Extended {
@@ -535,7 +538,7 @@ impl Cpu {
 
                 self.draw_flag = true;
                 self.pc += 2;
-}
+            }
 
             0xE000 => {
                 match self.opcode & 0x00FF {
@@ -604,8 +607,10 @@ impl Cpu {
                         } else {
                             self.v[0x0];
                         }
-                        self.pc = self.pc.wrapping_add(2);
-                        self.i = self.i.wrapping_add(self.v[x] as u16);
+                        self.pc += 2;
+                        self.i += self.v[x] as u16;
+                        // self.pc = self.pc.wrapping_add(2);
+                        // self.i = self.i.wrapping_add(self.v[x] as u16);
                     }
 
                     // FX29 Set I to the location of the sprite (5 byte) for char in Vx
