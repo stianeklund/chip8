@@ -648,8 +648,8 @@ impl Cpu {
                     // FX55 Stores V0 to VX in memory starting at I
                     0x0055 => {
                         for index in 0..x + 1 {
-                            self.memory[self.i as usize + index] = self.v[index as usize];
-
+                            self.memory[i_reg + index] = self.v[index];
+                            self.i += 1;
                         }
 
                         self.pc += 2;
@@ -660,7 +660,11 @@ impl Cpu {
                         // SC_Test Error: 0
                         // "Problems with Fx65 instruction. Can't load zeroes from memory to registers"
                         for index in 0..x + 1 {
-                            self.v[x] = self.memory[self.i as usize + index];
+                            self.v[x] = self.memory[(i_reg + index)];
+                            self.i += 1;
+                            if self.mode.debug {
+                                println!("FX65. Index: {}, Vx: {}", index, self.v[x]);
+                            }
                         }
 
                         self.pc += 2;
