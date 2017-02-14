@@ -187,14 +187,13 @@ impl Cpu {
         let x = ((self.opcode & 0x0F00) >> 8) as usize;
         let y = ((self.opcode & 0x00F0) >> 4) as usize;
 
-        let i_reg = (self.i & 0xFFF) as usize;          // i register
         let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if self.mode.debug == true {
             println!(
-                "PC: {:#?}  |  Opcode: {:X}  |   I: {:#X}   |   Vx: {:#?}  |   DisplayMode: {:#?}",
-                self.pc, self.opcode, self.i, self.v[x], self.display_mode);
+                "Opcode: {:X}, | PC: {:#?} |  SP: {:X} | I: {:X} | Vx: {:#?} | Mode: {:#?}",
+                self.opcode, self.pc, self.sp, self.i, self.v[x], self.display_mode);
         }
 
 
@@ -207,6 +206,7 @@ impl Cpu {
                     // 00CN SCHIP Scroll down N lines
                     0x00C0 => {
                         let n = (self.opcode & 0x000F) as usize;
+
                         let size = if self.display_mode == DisplayMode::Extended {n} else {n / 2};
 
                         // Subtract n from y to scroll down n height
@@ -223,7 +223,7 @@ impl Cpu {
                         self.pc += 2;
                         self.draw_flag = true;
 
-                        if self.mode.debug { println!("Call to 0x00C0"); }
+                        if self.mode.debug { println!("Scroll down N lines"); }
                     }
 
                     _ => match self.opcode & 0x00FF {
@@ -237,7 +237,7 @@ impl Cpu {
 
                         // 00EE (RET) Return from subroutine call
                         0x00EE => {
-                            self.sp = self.sp.wrapping_sub(1);
+                            self.sp -= 1;
                             self.pc = self.stack[(self.sp as usize)];
                             self.pc += 2;
                         }
@@ -261,7 +261,7 @@ impl Cpu {
                             self.draw_flag = true;
                             self.pc += 2;
 
-                            if self.mode.debug { println!("Call to 00FB"); }
+                            if self.mode.debug { println!("Scroll 4 pixels right"); }
                         }
 
                         // 00FC (SCHIP) Scroll screen 4 pixels left
@@ -283,7 +283,7 @@ impl Cpu {
                             self.draw_flag = true;
                             self.pc += 2;
 
-                            if self.mode.debug { println!("Call to 00FB"); }
+                            if self.mode.debug { println!("Scroll 4 pixels left"); }
                         }
 
                         // 00FE (SCHIP) Disable extended screen mode
@@ -292,25 +292,23 @@ impl Cpu {
                             self.pc += 2;
 
 
-                            if self.mode.debug {
-                                println!("Call to 00FE (Extended mode: {:?}", self.mode);
-                            }
+                            if self.mode.debug { println!("(Extended mode disabled"); }
                         }
 
                         // 00FD (SCHIP) Exit CHIP8 Interpreter
                         0x00FD => {
 
-                            if self.mode.debug { println!("Call to 00FD (Exit CHIP-8 Interpreter)"); }
-
                             // Reset instead of exiting interpreter
+                            if self.mode.debug { println!("Resetting CHIP-8 Interpreter"); }
                             self.reset()
                         }
 
                         // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
                         0x00FF => {
                             self.display_mode = DisplayMode::Extended;
+                            if self.mode.debug { println!("Extended mode enabled"); }
+
                             self.pc += 2;
-                            if self.mode.debug { println!("Call to 00FF (Extended mode enabled)"); }
                         },
 
                         0x0000 => {
@@ -388,20 +386,20 @@ impl Cpu {
 
                     // 8XY1 Set Vx to Vx OR Vy
                     0x0001 => {
-                        self.v[x] = self.v[x] | self.v[y];
+                        self.v[x] |= self.v[y];
                         self.pc += 2;
 
                     }
 
-                    // 8XY2 Set Vx to Vx OR Vy
+                    // 8XY2 Set Vx to Vx AND Vy
                     0x0002 => {
-                        self.v[x] = self.v[x] & self.v[y];
+                        self.v[x] &= self.v[y];
                         self.pc += 2;
                     }
 
                     // 8XY3 Set Vx to Vx XOR Vy
                     0x0003 => {
-                        self.v[x] = self.v[x] ^ self.v[y];
+                        self.v[x] ^= self.v[y];
                         self.pc += 2;
                     }
 
@@ -409,24 +407,26 @@ impl Cpu {
                     0x0004 => {
                         let val = self.v[x] as u16 + self.v[y] as u16;
 
-                        if val > 255 {
-                            self.v[0xF] = 1;
-                        } else {
-                            self.v[0xF] = 0;
-                        }
+                        // if val > 255 {
+                          //  self.v[0xF] = 1;
+                        // } else {
+                          //  self.v[0xF] = 0;
+                        // }
 
                         self.v[x] = val as u8;
+                        self.v[0xF] = (val > 0xFF) as u8;
                         self.pc += 2;
                     }
 
                     // 8XY5 Set Vx = Vx - Vy, set VF = NOT borrow v[0xF]
                     0x0005 => {
-                        if self.v[x] > self.v[y] {
-                            self.v[0xF] = 1;
-                        } else {
-                            self.v[0xF] = 0;
-                        }
+                        // if self.v[x] > self.v[y] {
+                          //  self.v[0xF] = 1;
+                        // } else {
+                          //  self.v[0xF] = 0;
+                        // }
 
+                        self.v[0xF] = (!(self.v[y] > self.v[x])) as u8;
                         self.v[x] = self.v[x].wrapping_sub(self.v[y]);
                         self.pc += 2;
                     }
@@ -438,6 +438,7 @@ impl Cpu {
 
                         self.v[0xF] = lsb;
                         self.v[x] >>= 1;
+
                         self.pc += 2;
                     }
 
@@ -486,6 +487,7 @@ impl Cpu {
                 let mut rng = rand::thread_rng();
                 let random_number: u8 = rng.gen_range(0, 255);
                 self.v[x] = random_number & kk as u8;
+
                 self.pc += 2;
             }
 
@@ -497,7 +499,7 @@ impl Cpu {
                 // Let sprite width be 16 (for 16x16 unless Extended mode is not enabled)
                 let w = if n == 0 {16} else {8};
                 let h = if n == 0 && self.display_mode == DisplayMode::Extended {16} else {n};
-                if self.mode.debug { println!("Sprite width: {}, height: {}", w, h); };
+
 
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
@@ -527,16 +529,19 @@ impl Cpu {
 
                 // Set collision flag
                 self.v[0xF] = collision as u8;
-                collision;
 
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
                 if self.display_mode == DisplayMode::Extended {
                     display.draw(&self.pixels, 10, 10);
+
                 } else {
                     display.draw(&self.pixels, 20, 20);
                 }
 
+                if self.mode.debug { println!("Sprite width: {}, height: {}", w, h); };
+
                 self.draw_flag = true;
+
                 self.pc += 2;
             }
 
@@ -547,6 +552,7 @@ impl Cpu {
                     0x009E => {
                         if self.keypad[self.v[x] as usize] != 0 {
                             self.pc += 4;
+
                         } else {
                             self.pc += 2;
                         }
@@ -556,6 +562,7 @@ impl Cpu {
                     0x00A1 => {
                         if self.keypad[self.v[x] as usize] != 1 {
                             self.pc += 4;
+
                         } else {
                             self.pc += 2;
                         }
@@ -578,19 +585,19 @@ impl Cpu {
                     0x000A => {
                         for i in 0..0xF {
                             if self.keypad[i] != 0 {
-                                if self.mode.debug { println!("Key pressed: {:?}", self.keypad); }
                                 self.v[x] = i as u8;
                                 break;
                             }
                         }
+                        if self.mode.debug { println!("Key pressed: {:?}", self.keypad); }
                         self.pc += 2;
                     }
 
                     // FX15 Set delay timer
                     0x0015 => {
                         self.delay_timer = self.v[x];
-                        self.pc += 2;
                         self.tick = 1.0 / 60.0;
+                        self.pc += 2;
                     }
 
                     // FX18 Set sound timer
@@ -604,52 +611,60 @@ impl Cpu {
                     0x001E => {
                         if self.v[x] > 0xFFFu16.wrapping_sub(self.i) as u8 {
                             self.v[0xF] = 1;
+
                         } else {
                             self.v[0x0];
                         }
-                        self.pc += 2;
                         self.i += self.v[x] as u16;
-                        // self.pc = self.pc.wrapping_add(2);
-                        // self.i = self.i.wrapping_add(self.v[x] as u16);
+                        self.pc += 2;
                     }
 
                     // FX29 Set I to the location of the sprite (5 byte) for char in Vx
                     // Chars 0-F are represented by a 4x5 font Each char contains 5 elements
                     // Create 0x5 font accessible in memory
                     0x0029 => {
-                        self.i = (self.v[x].wrapping_mul(5)) as u16;
-                        if self.mode.debug {
-                            println!("At FX29. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
-                        }
+                        // self.i = self.v[((self.opcode as usize & 0x0F00) >> 8)] as u16 * 5  as u16;
+
+                        self.i = (self.v[x] as usize * 5) as u16;
+
+                        if self.mode.debug { println!("At FX29. Vx: {}, I:{}", self.v[x], self.i); }
+
                         self.pc += 2;
-                    },
+                },
 
                     // FX30 SCHIP Set I to the location of the sprite (10 byte) for digit in VX
                     0x0030 => {
-                        self.i = (self.v[x].wrapping_mul(10)) as u16;
-                        if self.mode.debug {
-                            println!("At FX30. Value of Vx: {}, Value of i:{}", self.v[x], self.i);
-                        }
+                        self.i = (self.v[x] as usize * 10) as u16;
+
+                        if self.mode.debug { println!("At FX30. Vx: {}, I:{}", self.v[x], self.i); }
+
                         self.pc += 2;
                     }
+
                     // FX33 (BCD) The interpreter takes the decimal value of Vx
                     // & places the hundreds digit in memory at location in I,
                     // the tens digit at location I+1, and the ones digit at location I+2.
                     0x0033 => {
-                        self.memory[i_reg] = self.v[x] / 100;
-                        self.memory[i_reg + 1] = self.v[x] % 100 / 10;
-                        self.memory[i_reg + 2] = self.v[x] % 10;
+                        let i = self.i as usize;
 
-                        if self.mode.debug { println!("BCD Vx: {:b}, i_reg:{:b}", self.v[x], i_reg); }
+                        self.memory[i] = self.v[x] / 100;
+                        self.memory[i + 1] = self.v[x] % 100 / 10;
+                        self.memory[i + 2] = self.v[x] % 10;
+
+                        if self.mode.debug {
+                            println!("BCD I:{}", self.i);
+                            println!("V0:{:X}, V1:{:X}, V2:{:X}", self.v[0], self.v[1], self.v[2]);
+                        }
 
                         self.pc += 2;
                     }
 
                     // FX55 Stores V0 to VX in memory starting at I
                     0x0055 => {
-                        for index in 0..x + 1 {
-                            self.memory[i_reg + index] = self.v[index];
-                            self.i += 1;
+                        let i = self.i as usize;
+
+                        for index in 0..(x + 1) {
+                            self.memory[i + index] = self.v[index];
                         }
 
                         self.pc += 2;
@@ -657,13 +672,15 @@ impl Cpu {
 
                     // FX65 Fills V0 to VX with values from memory starting at I
                     0x0065 => {
+                        // Problem with Fx65 instruction.
+                        // Can't load zeroes from memory to registers
                         // SC_Test Error: 0
-                        // "Problems with Fx65 instruction. Can't load zeroes from memory to registers"
-                        for index in 0..x + 1 {
-                            self.v[x] = self.memory[(i_reg + index)];
-                            self.i += 1;
+                        let i = self.i as usize;
+
+                        for index in 0..(x + 1) {
+                            self.v[x] = self.memory[(i + index)];
                             if self.mode.debug {
-                                println!("FX65. Index: {}, Vx: {}", index, self.v[x]);
+                                println!("FX65. V0 {:X}, V1: {:X}, V2: {:X}", self.v[0], self.v[1], self.v[2]);
                             }
                         }
 
