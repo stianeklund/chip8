@@ -407,27 +407,19 @@ impl Cpu {
                     0x0004 => {
                         let val = self.v[x] as u16 + self.v[y] as u16;
 
-                        // if val > 255 {
-                          //  self.v[0xF] = 1;
-                        // } else {
-                          //  self.v[0xF] = 0;
-                        // }
+                        if val > 255 { self.v[0xF] = 1; } else { self.v[0xF] = 0; }
 
                         self.v[x] = val as u8;
-                        self.v[0xF] = (val > 0xFF) as u8;
+
                         self.pc += 2;
                     }
 
                     // 8XY5 Set Vx = Vx - Vy, set VF = NOT borrow v[0xF]
                     0x0005 => {
-                        // if self.v[x] > self.v[y] {
-                          //  self.v[0xF] = 1;
-                        // } else {
-                          //  self.v[0xF] = 0;
-                        // }
+                        if self.v[x] > self.v[y] { self.v[0xF] = 1; } else { self.v[0xF] = 0; }
 
-                        self.v[0xF] = (!(self.v[y] > self.v[x])) as u8;
                         self.v[x] = self.v[x].wrapping_sub(self.v[y]);
+
                         self.pc += 2;
                     }
 
