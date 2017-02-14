@@ -343,7 +343,6 @@ impl Cpu {
 
             // 3XKK Skip next instruction if Vx = kk
             0x3000 => {
-                if self.mode.debug { println! ("3XKK, VX: {}, VF: {}, kk: {}", self.v[x], self.v[15], kk);}
                 if self.v[x] == kk as u8 {
                     self.pc += 4;
 
@@ -498,8 +497,9 @@ impl Cpu {
                 let n = self.opcode & 0x000F; // Sprite height
 
                 // Let sprite width be 16 (for 16x16 unless Extended mode is not enabled)
+                let extended = self.display_mode == DisplayMode::Extended;
                 let w = if n == 0 {16} else {8};
-                let h = if n == 0 && self.display_mode == DisplayMode::Extended {16} else {n};
+                let h = if n == 0 && extended {16} else {n};
 
 
                 let sprite_x = self.v[x] as usize;
@@ -521,7 +521,7 @@ impl Cpu {
                         if row & (0x80 >> i) != 0 {
                             if self.pixels[yj][xi] == true {
                                 collision = true;
-                                self.v[0xF] = 1;
+                                // self.v[0xF] = 1;
                             };
 
                             self.pixels[yj][xi] = !self.pixels[yj][xi];
