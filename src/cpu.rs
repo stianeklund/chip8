@@ -191,9 +191,7 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if self.mode.debug == true {
-            println!(
-                "Opcode: {:X}, | PC: {:#?} |  SP: {:X} | I: {:X} | Vx: {:#?} | Mode: {:#?}",
-                self.opcode, self.pc, self.sp, self.i, self.v[x], self.display_mode);
+            println!("Opcode: {:X}, | PC: {:#?} |  SP: {:X} | I: {:X} | V0: {:X} | V1: {:X} | V2: {:X} | V3: {:X} | V4: {:X} | V5: {:X} | V6: {:X} | V7: {:X} | V8: {:X} | V9: {:X} | VA: {:X} |  VB: {:X} | VC: {:X} | VD: {:X} | VE: {:X} | VF: {:X} | Mode: {:#?}", self.opcode, self.pc, self.sp, self.i, self.v[0], self.v[1], self.v[2], self.v[3], self.v[4], self.v[5],  self.v[6], self.v[7], self.v[8], self.v[9], self.v[10], self.v[11], self.v[12], self.v[13], self.v[14], self.v[15], self.display_mode);
         }
 
 
@@ -335,6 +333,7 @@ impl Cpu {
 
             // 3XKK Skip next instruction if Vx = kk
             0x3000 => {
+                if self.mode.debug { println! ("3XKK, VX: {}, VF: {}, kk: {}", self.v[x], self.v[15], kk);}
                 if self.v[x] == kk as u8 {
                     self.pc += 4;
 
@@ -345,7 +344,7 @@ impl Cpu {
 
             // 4XKK Skip next instruction if Vx != kk
             0x4000 => {
-                if self.v[x] != kk as u8 {
+                if self.v[x as usize] != kk as u8 {
                     self.pc += 4;
 
                 } else {
@@ -511,7 +510,7 @@ impl Cpu {
 
                         if row & (0x80 >> i) != 0 {
                             if self.pixels[yj][xi] == true {
-                                collision = true
+                                collision = true;
                             };
 
                             self.pixels[yj][xi] = !self.pixels[yj][xi];
@@ -519,8 +518,11 @@ impl Cpu {
                     }
                 }
 
+
                 // Set collision flag
                 self.v[0xF] = collision as u8;
+                collision = true;
+                if self.mode.debug { println!("Collision: {}", collision as u8);}
 
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
                 if self.display_mode == DisplayMode::Extended {
@@ -530,7 +532,7 @@ impl Cpu {
                     display.draw(&self.pixels, 20, 20);
                 }
 
-                if self.mode.debug { println!("Sprite width: {}, height: {}", w, h); };
+                // if self.mode.debug { println!("Sprite width: {}, height: {}", w, h); };
 
                 self.draw_flag = true;
 
@@ -581,7 +583,6 @@ impl Cpu {
                                 break;
                             }
                         }
-                        if self.mode.debug { println!("Key pressed: {:?}", self.keypad); }
                         self.pc += 2;
                     }
 
@@ -615,12 +616,10 @@ impl Cpu {
                     // Chars 0-F are represented by a 4x5 font Each char contains 5 elements
                     // Create 0x5 font accessible in memory
                     0x0029 => {
-                        // self.i = self.v[((self.opcode as usize & 0x0F00) >> 8)] as u16 * 5  as u16;
 
                         self.i = (self.v[x] as usize * 5) as u16;
 
-                        if self.mode.debug { println!("At FX29. Vx: {}, I:{}", self.v[x], self.i); }
-
+                        // if self.mode.debug { println!("At FX29. Vx: {}, I:{}", self.v[x], self.i); }
                         self.pc += 2;
                 },
 
@@ -628,7 +627,7 @@ impl Cpu {
                     0x0030 => {
                         self.i = (self.v[x] as usize * 10) as u16;
 
-                        if self.mode.debug { println!("At FX30. Vx: {}, I:{}", self.v[x], self.i); }
+                        // if self.mode.debug { println!("At FX30. Vx: {}, I:{}", self.v[x], self.i); }
 
                         self.pc += 2;
                     }
@@ -643,10 +642,6 @@ impl Cpu {
                         self.memory[i + 1] = self.v[x] % 100 / 10;
                         self.memory[i + 2] = self.v[x] % 10;
 
-                        if self.mode.debug {
-                            println!("BCD I:{}", self.i);
-                            println!("V0:{:X}, V1:{:X}, V2:{:X}", self.v[0], self.v[1], self.v[2]);
-                        }
 
                         self.pc += 2;
                     }
@@ -671,9 +666,6 @@ impl Cpu {
 
                         for index in 0..(x + 1) {
                             self.v[x] = self.memory[(i + index)];
-                            if self.mode.debug {
-                                println!("FX65. V0 {:X}, V1: {:X}, V2: {:X}", self.v[0], self.v[1], self.v[2]);
-                            }
                         }
 
                         self.pc += 2;
