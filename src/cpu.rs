@@ -191,7 +191,15 @@ impl Cpu {
         let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
 
         if self.mode.debug == true {
-            println!("Opcode: {:X}, | PC: {:#?} |  SP: {:X} | I: {:X} | V0: {:X} | V1: {:X} | V2: {:X} | V3: {:X} | V4: {:X} | V5: {:X} | V6: {:X} | V7: {:X} | V8: {:X} | V9: {:X} | VA: {:X} |  VB: {:X} | VC: {:X} | VD: {:X} | VE: {:X} | VF: {:X} | Mode: {:#?}", self.opcode, self.pc, self.sp, self.i, self.v[0], self.v[1], self.v[2], self.v[3], self.v[4], self.v[5],  self.v[6], self.v[7], self.v[8], self.v[9], self.v[10], self.v[11], self.v[12], self.v[13], self.v[14], self.v[15], self.display_mode);
+            // TODO: Fix. This is gross, I know..
+            println!("Opcode:{:X} | PC:{:#?} | SP:{:X} | I:{:X} | V0:{:X} | \
+                      V1:{:X} | V2:{:X} | V3:{:X} | V4:{:X} | V5:{:X} | \
+                      V6:{:X} | V7:{:X} | V8:{:X} | V9:{:X} | VA:{:X} | \
+                      VB:{:X} | VC:{:X} | VD:{:X} | VE:{:X} | VF:{:X} | Mode:{:#?}",
+                     self.opcode, self.pc, self.sp, self.i, self.v[0], self.v[1],
+                     self.v[2], self.v[3], self.v[4], self.v[5],  self.v[6], self.v[7],
+                     self.v[8], self.v[9], self.v[10], self.v[11], self.v[12],
+                     self.v[13], self.v[14], self.v[15], self.display_mode);
         }
 
 
@@ -204,15 +212,16 @@ impl Cpu {
                     // 00CN SCHIP Scroll down N lines
                     0x00C0 => {
                         let n = (self.opcode & 0x000F) as usize;
+                        let extended = self.display_mode == DisplayMode::Extended;
 
-                        let size = if self.display_mode == DisplayMode::Extended {n} else {n / 2};
+                        let i = if extended { n } else { n / 2};
 
                         // Subtract n from y to scroll down n height
                         for x in 0..WIDTH - 1 {
                             for y in (1..HEIGHT).rev() {
-                                self.pixels[y][x] = self.pixels[y - size][x];
+                                self.pixels[y][x] = self.pixels[y - i][x];
                             }
-                            for y in 0..size { self.pixels[y][x] = false;
+                            for y in 0..i { self.pixels[y][x] = false;
                             }
                         }
 
@@ -242,14 +251,15 @@ impl Cpu {
 
                         // 00FB (SCHIP) Scroll screen 4 pixels right
                         0x00FB => {
-                            let size = if self.display_mode == DisplayMode::Extended {4} else {2};
+                            let extended = self.display_mode == DisplayMode::Extended;
+                            let i = if extended {4} else {2};
 
                             for y in 0..HEIGHT {
-                                for x in (size..WIDTH).rev() {
-                                    self.pixels[y][x] = self.pixels[y][x - size];
+                                for x in (i..WIDTH).rev() {
+                                    self.pixels[y][x] = self.pixels[y][x - i];
                                 }
 
-                                for x in 0..size {
+                                for x in 0..i {
                                     self.pixels[y][x] = false;
                                 }
                             }
@@ -264,14 +274,15 @@ impl Cpu {
 
                         // 00FC (SCHIP) Scroll screen 4 pixels left
                         0x00FC => {
-                            let size = if self.display_mode == DisplayMode::Extended {4} else {2};
+                            let extended = self.display_mode == DisplayMode::Extended;
+                            let i = if extended {4} else {2};
 
                             for y in 0..HEIGHT {
-                                for x in 0..(WIDTH - size) {
-                                    self.pixels[y][x] = self.pixels[y][x + size];
+                                for x in 0..(WIDTH - i) {
+                                    self.pixels[y][x] = self.pixels[y][x + i];
                                 }
 
-                                for x in (WIDTH - size)..WIDTH {
+                                for x in (WIDTH - i)..WIDTH {
                                     self.pixels[y][x] = false;
                                 }
                             }
@@ -288,7 +299,6 @@ impl Cpu {
                         0x00FE => {
                             self.display_mode = DisplayMode::Normal;
                             self.pc += 2;
-
 
                             if self.mode.debug { println!("(Extended mode disabled"); }
                         }
@@ -511,6 +521,7 @@ impl Cpu {
                         if row & (0x80 >> i) != 0 {
                             if self.pixels[yj][xi] == true {
                                 collision = true;
+                                self.v[0xF] = 1;
                             };
 
                             self.pixels[yj][xi] = !self.pixels[yj][xi];
