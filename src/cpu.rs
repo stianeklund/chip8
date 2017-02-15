@@ -15,6 +15,7 @@ pub struct Mode {
 
 }
 
+#[allow(dead_code)]
 impl Mode {
     pub fn normal_mode() -> Mode {
         Mode {
@@ -31,6 +32,7 @@ impl Mode {
     }
 }
 
+// CHIP-8 Fonts
 const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -48,9 +50,9 @@ const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xE0, // D
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80, // F
-
 ];
 
+// SuperChip Fonts
 const SUPER_FONT: [u8; 160] = [
     0xFF, 0xFF, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF, // 0
     0x18, 0x78, 0x78, 0x18, 0x18, 0x18, 0x18, 0x18, 0xFF, 0xFF, // 1
@@ -67,7 +69,7 @@ const SUPER_FONT: [u8; 160] = [
     0x3C, 0xFF, 0xC3, 0xC0, 0xC0, 0xC0, 0xC0, 0xC3, 0xFF, 0x3C, // C
     0xFC, 0xFE, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFE, 0xFC, // D
     0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, // E
-    0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0  // F
+    0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, 0xC0, 0xC0, 0xC0, 0xC0, // F
 ];
 
 pub struct Cpu {
@@ -97,7 +99,7 @@ impl Cpu {
     pub fn new() -> Cpu {
         let mut memory = Box::new([0; 4096]);
 
-        // Load sprites into memory. Load CHIP-8 fonts, then load SuperCHIP fonts
+        // Copy fonts into memory
         if memory.lt(&[80]) {
             memory[0..80].copy_from_slice(&FONT[0..80]);
 
@@ -413,30 +415,30 @@ impl Cpu {
 
                     // 8XY4 Set Vx = Vx + Vy, set VF = carry
                     0x0004 => {
-                        let val = self.v[x] as u16 + self.v[y] as u16;
 
-                        if val > 255 { self.v[0xF] = 1; } else { self.v[0xF] = 0; }
+                        let reg = (self.v[x] as u16) + (self.v[y] as u16);
+                        self.v[x] = reg as u8;
 
-                        self.v[x] = val as u8;
-
+                        // Set carry if the value of Vx + Vy is larger than 0xFF (255)
+                        self.v[0xF] = (reg > 0xFF) as u8;
                         self.pc += 2;
                     }
 
                     // 8XY5 Set Vx = Vx - Vy, set VF = NOT borrow v[0xF]
                     0x0005 => {
-                        if self.v[x] > self.v[y] { self.v[0xF] = 1; } else { self.v[0xF] = 0; }
+                        let borrow = self.v[y] > self.v[x];
 
                         self.v[x] = self.v[x].wrapping_sub(self.v[y]);
+                        self.v[0xF] = if borrow {0} else {1};
+
 
                         self.pc += 2;
                     }
 
                     // 8XY6 Vx = Vx Shift right by 1 If the least-significant bit of
-                    // Vx is 1 then VF is set to 1, otherwise 0. Then Vx is divided by 2
+                    // Vx is 1 then VF is set to 1, otherwise 0.
                     0x0006 => {
-                        let lsb = self.v[x] << 7 >> 7;
-
-                        self.v[0xF] = lsb;
+                        self.v[0xF] = self.v[x] & 1;
                         self.v[x] >>= 1;
 
                         self.pc += 2;
@@ -444,12 +446,13 @@ impl Cpu {
 
                     // 8XY7 Set Vx = Vy - Vx, VF NOT borrow
                     0x0007 => {
-                        if self.v[y] > self.v[x] {
-                            self.v[0xF] = 1;
-                        } else {
-                            self.v[0xF] = 0;
-                        }
-                        self.pc += 2;
+                        let borrow = self.v[x] > self.v[y];
+
+                        self.v[x] = self.v[y].wrapping_sub(self.v[x]);
+                        self.v[0xF] = if borrow {0} else {1};
+
+
+                       self.pc += 2;
                     }
 
                     // 8XYE
@@ -466,11 +469,8 @@ impl Cpu {
 
             // 9XY0 Skip next instruction if Vx != Vy
             0x9000 => {
-                if self.v[x] != self.v[y] {
-                    self.pc += 4;
-                } else {
-                    self.pc += 2;
-                }
+                if self.v[x] != self.v[y] { self.pc += 4; } else { self.pc += 2; }
+
             }
             // ANNN Load index register (I) with NNN
             0xA000 => {
@@ -479,7 +479,7 @@ impl Cpu {
             }
             // BNNN Jump to address NNN + V0
             0xB000 => {
-                self.pc = nnn + self.v[0x0] as u16;
+                self.pc = nnn.wrapping_add(self.v[0] as u16);
             }
 
             // CXNN Set Vx to a random number masked by kk
@@ -496,11 +496,11 @@ impl Cpu {
             0xD000 => {
                 let n = self.opcode & 0x000F; // Sprite height
 
-                // Let sprite width be 16 (for 16x16 unless Extended mode is not enabled)
+                // Let sprite width be 16 (for 16x16 drawing if extended mode)
                 let extended = self.display_mode == DisplayMode::Extended;
+
                 let w = if n == 0 {16} else {8};
                 let h = if n == 0 && extended {16} else {n};
-
 
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
@@ -510,10 +510,9 @@ impl Cpu {
                 let mut collision = false;
 
                 for j in 0..h {
-                    let row = self.memory[(self.i + j) as usize] as u16;
+                    let row = self.memory[(self.i as usize + j as usize)] as u16;
 
                     // TODO: 16x16 sprites are only rendered in half for some reason
-                    // Check if bit is set
                     for i in 0..w {
                         let xi = ((sprite_x + i as usize) % WIDTH) as usize;
                         let yj = ((sprite_y + j as usize) % HEIGHT) as usize;
@@ -521,7 +520,6 @@ impl Cpu {
                         if row & (0x80 >> i) != 0 {
                             if self.pixels[yj][xi] == true {
                                 collision = true;
-                                // self.v[0xF] = 1;
                             };
 
                             self.pixels[yj][xi] = !self.pixels[yj][xi];
@@ -533,6 +531,7 @@ impl Cpu {
                 // Set collision flag
                 self.v[0xF] = collision as u8;
                 collision = true;
+
                 if self.mode.debug { println!("Collision: {}", collision as u8);}
 
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
@@ -542,8 +541,6 @@ impl Cpu {
                 } else {
                     display.draw(&self.pixels, 20, 20);
                 }
-
-                // if self.mode.debug { println!("Sprite width: {}, height: {}", w, h); };
 
                 self.draw_flag = true;
 
@@ -613,13 +610,9 @@ impl Cpu {
 
                     // FX1E Add Vx to I (MEM) VF is set to 1 when range overflow (I +VX> 0xFFF)
                     0x001E => {
-                        if self.v[x] > 0xFFFu16.wrapping_sub(self.i) as u8 {
-                            self.v[0xF] = 1;
-
-                        } else {
-                            self.v[0x0];
-                        }
                         self.i += self.v[x] as u16;
+                        self.v[0xF] = (self.i > 0xFFF) as u8;
+
                         self.pc += 2;
                     }
 
