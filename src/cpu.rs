@@ -459,7 +459,7 @@ impl Cpu {
                     // If the most-significant bit of Vx is 1 then VF is set to 1
                     // Otherwise VF is set to 0 and Vx is multiplied by 2.
                     0x000E => {
-                        self.v[0xF] = self.v[x] >> 7;
+                        self.v[0xF] = (self.v[x] >> 7) & 1;
                         self.v[x] <<= 1;
                         self.pc += 2;
                     }
@@ -645,6 +645,8 @@ impl Cpu {
                         self.memory[i] = self.v[x] / 100;
                         self.memory[i + 1] = self.v[x] % 100 / 10;
                         self.memory[i + 2] = self.v[x] % 10;
+                        if self.mode.debug {
+                            println!(" BCD: {}, {}, {}", self.memory[i], self.memory[i + 1], self.memory[i + 2]); }
 
 
                         self.pc += 2;
