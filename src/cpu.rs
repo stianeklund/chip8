@@ -522,7 +522,8 @@ impl Cpu {
                                 collision = true;
                             };
 
-                            self.pixels[yj][xi] = !self.pixels[yj][xi];
+                            self.pixels[yj][xi] ^= true;
+                            // self.pixels[yj][xi] = !self.pixels[yj][xi];
                         }
                     }
                 }
@@ -657,7 +658,7 @@ impl Cpu {
                         let i = self.i as usize;
 
                         for index in 0..(x + 1) {
-                            self.memory[i + index] = self.v[index];
+                            self.memory[index + i] = self.v[index];
                         }
 
                         self.pc += 2;
