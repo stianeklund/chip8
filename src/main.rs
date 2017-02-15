@@ -8,6 +8,7 @@ mod keypad;
 use std::env;
 use display::Display;
 
+#[allow(unused_variables)]
 fn main() {
 
     let args: Vec<String> = env::args().collect();

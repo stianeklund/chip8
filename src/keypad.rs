@@ -54,7 +54,7 @@ impl Keypad {
         }
 
         // Keypad is hex values 0-9 A-F
-        let mut key_state = KeyboardState::new(&mut self.pump);
+        let key_state = KeyboardState::new(&mut self.pump);
         key[0x0] = key_state.is_scancode_pressed(Scancode::Num0) as u8;
         key[0x1] = key_state.is_scancode_pressed(Scancode::Num1) as u8;
         key[0x2] = key_state.is_scancode_pressed(Scancode::Num2) as u8;
