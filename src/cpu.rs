@@ -507,7 +507,8 @@ impl Cpu {
 
                 // Set collision flag
                 self.v[0xF] = 0;
-                let mut collision = false;
+                // Pixels can either be on or off
+                let mut flipped = false;
 
                 for j in 0..h {
                     let row = self.memory[(self.i as usize + j as usize)] as u16;
@@ -517,23 +518,30 @@ impl Cpu {
                         let xi = ((sprite_x + i as usize) % WIDTH) as usize;
                         let yj = ((sprite_y + j as usize) % HEIGHT) as usize;
 
-                        if row & (0x80 >> i) != 0 {
-                            if self.pixels[yj][xi] == true {
-                                collision = true;
-                            };
-
+                        if row & 0x80 >> i != 0 {
+                            // Check if any pixel has changed from value 1 to 0
+                            flipped |= self.pixels[yj % HEIGHT][xi % WIDTH] as bool;
+                            self.v[0xF] = flipped as u8;
                             self.pixels[yj][xi] ^= true;
-                            // self.pixels[yj][xi] = !self.pixels[yj][xi];
                         }
                     }
                 }
 
+                // Old drawing code
+                //
+                // if row & (0x80 >> i) != 0 {
+                // if self.pixels[yj][xi] == true {
+                //  collision = true;
+                // }
+                // self.pixels[yj][xi] ^= true;
+                // self.pixels[yj][xi] = !self.pixels[yj][xi];
+                // }
 
                 // Set collision flag
-                self.v[0xF] = collision as u8;
-                collision = true;
+                // self.v[0xF] = collision as u8;
+                // collision = true;
 
-                if self.mode.debug { println!("Collision: {}", collision as u8);}
+                if self.mode.debug { println!("flipped: {}", flipped as u8);}
 
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
                 if self.display_mode == DisplayMode::Extended {
