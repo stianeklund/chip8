@@ -189,19 +189,19 @@ impl Cpu {
         let x = ((self.opcode & 0x0F00) >> 8) as usize;
         let y = ((self.opcode & 0x00F0) >> 4) as usize;
 
-        let nnn = self.opcode & 0x0FFF;                 // addr 12-bit value
-        let kk = self.opcode & 0x00FF;                  // u8, byte 8-bit value
+        let nnn: u16 = (self.opcode & 0x0FFF) as u16;    // addr 12-bit value
+        let kk: u8 = (self.opcode & 0x00FF) as u8;      // u8, byte 8-bit value
 
         if self.mode.debug == true {
             // TODO: Fix. This is gross, I know..
-            println!("Opcode:{:X} | PC:{:#?} | SP:{:X} | I:{:X} | V0:{:X} | \
-                      V1:{:X} | V2:{:X} | V3:{:X} | V4:{:X} | V5:{:X} | \
-                      V6:{:X} | V7:{:X} | V8:{:X} | V9:{:X} | VA:{:X} | \
-                      VB:{:X} | VC:{:X} | VD:{:X} | VE:{:X} | VF:{:X} | Mode:{:#?}",
+            println!("Opcode: {:X} | PC: {:#?} | SP: {:X} | I: {:X} | V0: {} | \
+                      V1: {} | V2: {} | V3: {} | V4: {} | V5: {} | \
+                      V6: {} | V7: {} | V8: {} | V9: {} | VA: {} | \
+                      VB: {} | VC: {} | VD: {} | VE: {} | VF: {}",
                      self.opcode, self.pc, self.sp, self.i, self.v[0], self.v[1],
                      self.v[2], self.v[3], self.v[4], self.v[5],  self.v[6], self.v[7],
                      self.v[8], self.v[9], self.v[10], self.v[11], self.v[12],
-                     self.v[13], self.v[14], self.v[15], self.display_mode);
+                     self.v[13], self.v[14], self.v[15]);
         }
 
 
@@ -345,7 +345,7 @@ impl Cpu {
 
             // 3XKK Skip next instruction if Vx = kk
             0x3000 => {
-                if self.v[x] == kk as u8 {
+                if self.v[x] == kk {
                     self.pc += 4;
 
                 } else {
@@ -355,7 +355,7 @@ impl Cpu {
 
             // 4XKK Skip next instruction if Vx != kk
             0x4000 => {
-                if self.v[x as usize] != kk as u8 {
+                if self.v[x as usize] != kk {
                     self.pc += 4;
 
                 } else {
@@ -375,14 +375,14 @@ impl Cpu {
 
             // 6XKK Set Vx = kk. Put value of kk in to Vx register
             0x6000 => {
-                self.v[x] = kk as u8;
+                self.v[x] = kk;
                 self.pc += 2;
             }
 
             // 7XKK Add value kk to Vx
             0x7000 => {
                 // Wrapping addition, prevents add overflow
-                self.v[x] = self.v[x].wrapping_add(kk as u8);
+                self.v[x] = self.v[x].wrapping_add(kk);
                 self.pc += 2;
             }
 
@@ -486,7 +486,7 @@ impl Cpu {
             0xC000 => {
                 let mut rng = rand::thread_rng();
                 let random_number: u8 = rng.gen_range(0, 255);
-                self.v[x] = random_number & kk as u8;
+                self.v[x] = random_number & kk;
 
                 self.pc += 2;
             }
@@ -527,6 +527,7 @@ impl Cpu {
                     }
                 }
 
+                /* ----------------------------------------------
                 // Old drawing code
                 //
                 // if row & (0x80 >> i) != 0 {
@@ -540,8 +541,9 @@ impl Cpu {
                 // Set collision flag
                 // self.v[0xF] = collision as u8;
                 // collision = true;
-
-                if self.mode.debug { println!("flipped: {}", flipped as u8);}
+                ----------------------------------------------*/
+                // In theory the sound timer should print BEEP for every collision
+                // if self.mode.debug { println!("flipped: {}", flipped as u8);}
 
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
                 if self.display_mode == DisplayMode::Extended {
@@ -654,8 +656,9 @@ impl Cpu {
                         self.memory[i] = self.v[x] / 100;
                         self.memory[i + 1] = self.v[x] % 100 / 10;
                         self.memory[i + 2] = self.v[x] % 10;
+
                         if self.mode.debug {
-                            println!(" BCD: {}, {}, {}", self.memory[i], self.memory[i + 1], self.memory[i + 2]); }
+                            println!(" BCD: Hundreds:{}, Tens:{}, Ones:{}", self.memory[i], self.memory[i + 1], self.memory[i + 2]); }
 
 
                         self.pc += 2;
