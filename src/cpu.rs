@@ -683,7 +683,7 @@ impl Cpu {
                         let i = self.i as usize;
 
                         for index in 0..(x + 1) {
-                            self.v[x] = self.memory[(i + index)];
+                            self.v[index] = self.memory[(i + index)];
                         }
 
                         self.pc += 2;
