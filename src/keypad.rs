@@ -15,6 +15,7 @@ pub enum State {
     Decrease,
     Debug,
     StopDebug,
+    Reset
 }
 
 impl Keypad {
@@ -48,7 +49,11 @@ impl Keypad {
                 },
                 Event::KeyDown { keycode: Some(Keycode::F11), .. } => {
                     return State::StopDebug;
-            }
+                },
+                Event::KeyDown { keycode: Some(Keycode::F3), .. } => {
+                    return State::Reset;
+                },
+
                 _ => {}
             }
         }

@@ -164,8 +164,11 @@ impl Cpu {
     }
 
     pub fn reset(&mut self) {
+        println!("Reset interpreter");
+
         for v in &mut self.v {
             *v = 0;
+
         }
 
         self.i = 0;
@@ -177,6 +180,7 @@ impl Cpu {
 
         self.pixels = [[false; WIDTH]; HEIGHT];
         self.draw_flag = true;
+
     }
 
 
@@ -193,7 +197,6 @@ impl Cpu {
         let kk: u8 = (self.opcode & 0x00FF) as u8;      // u8, byte 8-bit value
 
         if self.mode.debug == true {
-            // TODO: Fix. This is gross, I know..
             println!("Opcode: {:X} | PC: {:#?} | SP: {:X} | I: {:X} | V0: {} | \
                       V1: {} | V2: {} | V3: {} | V4: {} | V5: {} | \
                       V6: {} | V7: {} | V8: {} | V9: {} | VA: {} | \
@@ -309,7 +312,6 @@ impl Cpu {
                         0x00FD => {
 
                             // Reset instead of exiting interpreter
-                            if self.mode.debug { println!("Resetting CHIP-8 Interpreter"); }
                             self.reset()
                         }
 
@@ -507,6 +509,7 @@ impl Cpu {
 
                 // Set collision flag
                 self.v[0xF] = 0;
+
                 // Pixels can either be on or off
                 let mut flipped = false;
 
@@ -519,6 +522,7 @@ impl Cpu {
                         let yj = ((sprite_y + j as usize) % HEIGHT) as usize;
 
                         if row & 0x80 >> i != 0 {
+
                             // Check if any pixel has changed from value 1 to 0
                             flipped |= self.pixels[yj % HEIGHT][xi % WIDTH] as bool;
                             self.v[0xF] = flipped as u8;
