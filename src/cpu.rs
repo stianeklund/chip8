@@ -11,25 +11,6 @@ use display::{WIDTH, HEIGHT, DisplayMode};
 #[derive(Debug, Clone, Copy)]
 pub struct Mode {
     pub debug: bool,
-    pub normal: bool,
-
-}
-
-#[allow(dead_code)]
-impl Mode {
-    pub fn normal_mode() -> Mode {
-        Mode {
-            debug: false,
-            normal: true,
-        }
-    }
-
-    pub fn debug_mode() -> Mode {
-        Mode {
-            debug: true,
-            normal: false,
-        }
-    }
 }
 
 // CHIP-8 Fonts
@@ -87,11 +68,11 @@ pub struct Cpu {
     rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
     pub pixels: [[bool; WIDTH]; HEIGHT], // For rendering
     pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
-    pub mode: Mode,                      // Emulator is either Running or Debugging
+    pub mode: Mode,                      // Mode to turn on & off debugging
     pub display_mode: DisplayMode,       // Normal & Extended display modes
     pub speed: u8,                       // CPU clock speed
     draw_flag: bool                      // Whether or not to redraw
-    // *VF is a special register used to store overflow bit
+                                         // *VF is a special register used to store overflow bit
 }
 
 
@@ -122,7 +103,7 @@ impl Cpu {
             rpl_flags: [0; 8],
             pixels: [[false; WIDTH]; HEIGHT],
             keypad: [0; 16],
-            mode: Mode {normal: true, debug: false},
+            mode: Mode {debug: false},
             display_mode: DisplayMode::Normal,
             speed: 2,
             draw_flag: false
@@ -498,7 +479,7 @@ impl Cpu {
             0xD000 => {
                 let n = self.opcode & 0x000F; // Sprite height
 
-                // Let sprite width be 16 (for 16x16 drawing if extended mode)
+                // Let sprite width be 16 (for extended drawing mode)
                 let extended = self.display_mode == DisplayMode::Extended;
 
                 let w = if n == 0 {16} else {8};
@@ -530,24 +511,6 @@ impl Cpu {
                         }
                     }
                 }
-
-                /* ----------------------------------------------
-                // Old drawing code
-                //
-                // if row & (0x80 >> i) != 0 {
-                // if self.pixels[yj][xi] == true {
-                //  collision = true;
-                // }
-                // self.pixels[yj][xi] ^= true;
-                // self.pixels[yj][xi] = !self.pixels[yj][xi];
-                // }
-
-                // Set collision flag
-                // self.v[0xF] = collision as u8;
-                // collision = true;
-                ----------------------------------------------*/
-                // In theory the sound timer should print BEEP for every collision
-                // if self.mode.debug { println!("flipped: {}", flipped as u8);}
 
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
                 if self.display_mode == DisplayMode::Extended {

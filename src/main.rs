@@ -50,10 +50,9 @@ fn main() {
 
             // TODO Enable & disable debug mode with the same key..
             keypad::State::Debug => {
-                cpu.mode.debug = true; println!("Debug enabled");}
-            keypad::State::StopDebug => {
-                cpu.mode.normal= true; cpu.mode.debug = false; println!("Debug off"); }
-
+                cpu.mode.debug = true != cpu.mode.debug;
+                println!("Debug:{}", cpu.mode.debug as bool);
+            }
             keypad::State::Increase => {
                 speed = speed.wrapping_add(1); println!("Speed: {}", speed); }
             keypad::State::Decrease => {
