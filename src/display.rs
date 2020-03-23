@@ -1,5 +1,3 @@
-extern crate sdl2;
-
 use sdl2::Sdl;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
@@ -33,7 +31,7 @@ impl<'a> Display<'a> {
             .expect("Initialization of window renderer failed");
 
         Display {
-            renderer: renderer,
+            renderer,
             pixels: [[false; WIDTH]; HEIGHT],
             draw_flag: true,
         }
@@ -51,7 +49,7 @@ impl<'a> Display<'a> {
                 }
                 // x, y, w, h
                 self.renderer.fill_rect(
-                    Rect::new(x as i32 * clamp_pos, y as i32 * clamp_pos, clamp_size as u32, clamp_size as u32 )).unwrap();
+                    Rect::new(x as i32 * clamp_pos, y as i32 * clamp_pos, clamp_size as u32, clamp_size as u32)).unwrap();
             }
         }
         self.renderer.present();

@@ -4,6 +4,7 @@ use sdl2::event::Event;
 use sdl2::EventPump;
 use sdl2::Sdl;
 use sdl2::keyboard::{KeyboardState, Keycode, Scancode};
+
 pub struct Keypad {
     pump: EventPump
 }
@@ -14,7 +15,7 @@ pub enum State {
     Increase,
     Decrease,
     Debug,
-    Reset
+    Reset,
 }
 
 impl Keypad {
@@ -26,32 +27,17 @@ impl Keypad {
 
     // Poll for scancodes
     pub fn key_press(&mut self, key: &mut [u8; 16]) -> State {
-
-
         for event in self.pump.poll_iter() {
-            match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::X), .. } => {
-                    return State::Exit;
-            },
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    return State::Exit;
-                },
-                Event::KeyDown { keycode: Some(Keycode::PageUp), .. } => {
-                    return State::Increase;
-                },
-                Event::KeyDown { keycode: Some(Keycode::PageDown), .. } => {
-                    return State::Decrease;
-                },
-                Event::KeyDown { keycode: Some(Keycode::F12), .. } => {
-                    return State::Debug;
-                },
-                Event::KeyDown { keycode: Some(Keycode::F3), .. } => {
-                    return State::Reset;
-                },
-
-                _ => {}
-            }
+            return match event {
+                Event::Quit { .. } |
+                Event::KeyDown { keycode: Some(Keycode::X), .. } => State::Exit,
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => State::Exit,
+                Event::KeyDown { keycode: Some(Keycode::PageUp), .. } => State::Increase,
+                Event::KeyDown { keycode: Some(Keycode::PageDown), .. } => State::Decrease,
+                Event::KeyDown { keycode: Some(Keycode::F12), .. } => State::Debug,
+                Event::KeyDown { keycode: Some(Keycode::F3), .. } => State::Reset,
+                _ => State::Continue,
+            };
         }
 
         // Keypad is hex values 0-9 A-F

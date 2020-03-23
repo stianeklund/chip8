@@ -5,8 +5,8 @@ use std::cmp;
 use rand;
 use rand::Rng;
 
-use display::Display;
-use display::{WIDTH, HEIGHT, DisplayMode};
+use crate::display::Display;
+use crate::display::{WIDTH, HEIGHT, DisplayMode};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Mode {
@@ -14,7 +14,7 @@ pub struct Mode {
 }
 
 // CHIP-8 Fonts
-const FONT: [u8; 80] = [
+const FONT: [u8; 240] = [
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -31,10 +31,7 @@ const FONT: [u8; 80] = [
     0xF0, 0x90, 0x90, 0x90, 0xE0, // D
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80, // F
-];
-
-// SuperChip Fonts
-const SUPER_FONT: [u8; 160] = [
+    // Super CHIP fonts
     0xFF, 0xFF, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xC3, 0xFF, 0xFF, // 0
     0x18, 0x78, 0x78, 0x18, 0x18, 0x18, 0x18, 0x18, 0xFF, 0xFF, // 1
     0xFF, 0xFF, 0x03, 0x03, 0xFF, 0xFF, 0xC0, 0xC0, 0xFF, 0xFF, // 2
@@ -55,42 +52,38 @@ const SUPER_FONT: [u8; 160] = [
 
 pub struct Cpu {
     opcode: u16,
-    memory: Box<[u8; 4096]>,             // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
-    v: [u8; 16],                         // 8-bit general purpose register, (V0 - VE*).
-    i: u16,                              // Index register (start at 0x200)
-    pc: u16,                             // Program Counter. Jump to 0x200 on RST
-    stack: [u16; 16],                    // Interpreter returns to value when done with subroutine
-    sp: u16,                             // Stack pointer
-    delay_timer: u8,                     // 8-bit Delay Timer
-    sound_timer: u8,                     // 8-bit Sound Timer
-    snd_tick: f32,                       // Sound timer tick
-    tick: f32,                           // Cpu timer tick
-    rpl_flags: [u8; 8],                  // RPL User Flags (Used by opcodes FX75 & FX85)
-    pub pixels: [[bool; WIDTH]; HEIGHT], // For rendering
-    pub keypad: [u8; 16],                // Keypad is HEX based(0x0-0xF)
-    pub mode: Mode,                      // Mode to turn on & off debugging
-    pub display_mode: DisplayMode,       // Normal & Extended display modes
-    pub speed: u8,                       // CPU clock speed
-    draw_flag: bool                      // Whether or not to redraw
-                                         // *VF is a special register used to store overflow bit
+    memory: Box<[u8; 4096]>,       // 0x000 - 0xFFF. 0x000 - 0x1FF for interpreter
+    v: [u8; 16],                   // 8-bit general purpose register, (V0 - VE*).
+    i: u16,                        // Index register (start at 0x200)
+    pc: u16,                       // Program Counter. Jump to 0x200 on RST
+    stack: [u16; 16],              // Interpreter returns to value when done with subroutine
+    sp: u16,                       // Stack pointer
+    delay_timer: u8,               // 8-bit Delay Timer
+    sound_timer: u8,               // 8-bit Sound Timer
+    snd_tick: f32,                 // Sound timer tick
+    tick: f32,                     // Cpu timer tick
+    rpl_flags: [u8; 8],            // RPL User Flags (Used by opcodes FX75 & FX85)
+    pub pixels: [[bool; WIDTH]; HEIGHT],
+    pub keypad: [u8; 16],          // Keypad is HEX based(0x0-0xF)
+    pub mode: Mode,                // Mode to turn on & off debugging
+    pub display_mode: DisplayMode, // Normal & Extended display modes
+    pub speed: u8,                 // CPU clock speed
+    draw_flag: bool,               // Whether or not to redraw
+    // *VF is a special register used to store overflow bit
 }
 
 
 impl Cpu {
     pub fn new() -> Cpu {
-        let mut memory = Box::new([0; 4096]);
+        let mut memory = [0; 4096];
 
-        // Copy fonts into memory
-        if memory.lt(&[80]) {
-            memory[0..80].copy_from_slice(&FONT[0..80]);
-
-        } else if memory.lt(&[160]) {
-            memory[0..160].copy_from_slice(&SUPER_FONT[0..160]);
+        for i in 0..240 {
+            memory[i] = FONT[i];
         }
 
         Cpu {
             opcode: 0,
-            memory: memory,
+            memory: Box::new(memory),
             v: [0; 16],
             i: 0,
             pc: 0x200,
@@ -103,10 +96,10 @@ impl Cpu {
             rpl_flags: [0; 8],
             pixels: [[false; WIDTH]; HEIGHT],
             keypad: [0; 16],
-            mode: Mode {debug: false},
+            mode: Mode { debug: false },
             display_mode: DisplayMode::Normal,
             speed: 2,
-            draw_flag: false
+            draw_flag: false,
         }
     }
 
@@ -123,7 +116,7 @@ impl Cpu {
         for i in 0..buf_len { self.memory[i + 512] = buf[i]; }
     }
 
-    pub fn update_timers(&mut self, dt:f32) {
+    pub fn update_timers(&mut self, dt: f32) {
         if self.delay_timer > 0 {
             self.tick -= dt;
 
@@ -149,7 +142,6 @@ impl Cpu {
 
         for v in &mut self.v {
             *v = 0;
-
         }
 
         self.i = 0;
@@ -161,14 +153,13 @@ impl Cpu {
 
         self.pixels = [[false; WIDTH]; HEIGHT];
         self.draw_flag = true;
-
     }
 
 
     // Fetch high & low bytes & merge
     pub fn run(&mut self, display: &mut Display) {
         self.opcode = (self.memory[self.pc as usize] as u16) << 8 |
-        (self.memory[self.pc as usize + 1] as u16);
+            (self.memory[self.pc as usize + 1] as u16);
 
         // Decode Vx & Vy register identifiers.
         let x = ((self.opcode & 0x0F00) >> 8) as usize;
@@ -183,7 +174,7 @@ impl Cpu {
                       V6: {} | V7: {} | V8: {} | V9: {} | VA: {} | \
                       VB: {} | VC: {} | VD: {} | VE: {} | VF: {}",
                      self.opcode, self.pc, self.sp, self.i, self.v[0], self.v[1],
-                     self.v[2], self.v[3], self.v[4], self.v[5],  self.v[6], self.v[7],
+                     self.v[2], self.v[3], self.v[4], self.v[5], self.v[6], self.v[7],
                      self.v[8], self.v[9], self.v[10], self.v[11], self.v[12],
                      self.v[13], self.v[14], self.v[15]);
         }
@@ -199,15 +190,15 @@ impl Cpu {
                     0x00C0 => {
                         let n = (self.opcode & 0x000F) as usize;
                         let extended = self.display_mode == DisplayMode::Extended;
-
-                        let i = if extended { n } else { n / 2};
+                        let i = if extended { n } else { n / 2 };
 
                         // Subtract n from y to scroll down n height
-                        for x in 0..WIDTH - 1 {
+                        for x in 0..WIDTH {
                             for y in (1..HEIGHT).rev() {
                                 self.pixels[y][x] = self.pixels[y - i][x];
                             }
-                            for y in 0..i { self.pixels[y][x] = false;
+                            for y in 0..i {
+                                self.pixels[y][x] = false;
                             }
                         }
 
@@ -238,7 +229,7 @@ impl Cpu {
                         // 00FB (SCHIP) Scroll screen 4 pixels right
                         0x00FB => {
                             let extended = self.display_mode == DisplayMode::Extended;
-                            let i = if extended {4} else {2};
+                            let i = if extended { 4 } else { 2 };
 
                             for y in 0..HEIGHT {
                                 for x in (i..WIDTH).rev() {
@@ -261,7 +252,7 @@ impl Cpu {
                         // 00FC (SCHIP) Scroll screen 4 pixels left
                         0x00FC => {
                             let extended = self.display_mode == DisplayMode::Extended;
-                            let i = if extended {4} else {2};
+                            let i = if extended { 4 } else { 2 };
 
                             for y in 0..HEIGHT {
                                 for x in 0..(WIDTH - i) {
@@ -296,13 +287,13 @@ impl Cpu {
                             self.reset()
                         }
 
-                        // 00FF (SCHIP) Enabled enxtended screen mode: 128 x 64
+                        // 00FF (SCHIP) Enabled extended screen mode: 128 x 64
                         0x00FF => {
                             self.display_mode = DisplayMode::Extended;
                             if self.mode.debug { println!("Extended mode enabled"); }
 
                             self.pc += 2;
-                        },
+                        }
 
                         0x0000 => {
                             return;
@@ -330,7 +321,6 @@ impl Cpu {
             0x3000 => {
                 if self.v[x] == kk {
                     self.pc += 4;
-
                 } else {
                     self.pc += 2;
                 }
@@ -340,7 +330,6 @@ impl Cpu {
             0x4000 => {
                 if self.v[x as usize] != kk {
                     self.pc += 4;
-
                 } else {
                     self.pc += 2;
                 }
@@ -350,7 +339,6 @@ impl Cpu {
             0x5000 => {
                 if self.v[x] == self.v[y] {
                     self.pc += 4;
-
                 } else {
                     self.pc += 2;
                 }
@@ -381,7 +369,6 @@ impl Cpu {
                     0x0001 => {
                         self.v[x] |= self.v[y];
                         self.pc += 2;
-
                     }
 
                     // 8XY2 Set Vx to Vx AND Vy
@@ -398,7 +385,6 @@ impl Cpu {
 
                     // 8XY4 Set Vx = Vx + Vy, set VF = carry
                     0x0004 => {
-
                         let reg = (self.v[x] as u16) + (self.v[y] as u16);
                         self.v[x] = reg as u8;
 
@@ -412,7 +398,7 @@ impl Cpu {
                         let borrow = self.v[y] > self.v[x];
 
                         self.v[x] = self.v[x].wrapping_sub(self.v[y]);
-                        self.v[0xF] = if borrow {0} else {1};
+                        self.v[0xF] = if borrow { 0 } else { 1 };
 
 
                         self.pc += 2;
@@ -432,10 +418,10 @@ impl Cpu {
                         let borrow = self.v[x] > self.v[y];
 
                         self.v[x] = self.v[y].wrapping_sub(self.v[x]);
-                        self.v[0xF] = if borrow {0} else {1};
+                        self.v[0xF] = if borrow { 0 } else { 1 };
 
 
-                       self.pc += 2;
+                        self.pc += 2;
                     }
 
                     // 8XYE
@@ -453,7 +439,6 @@ impl Cpu {
             // 9XY0 Skip next instruction if Vx != Vy
             0x9000 => {
                 if self.v[x] != self.v[y] { self.pc += 4; } else { self.pc += 2; }
-
             }
             // ANNN Load index register (I) with NNN
             0xA000 => {
@@ -477,13 +462,13 @@ impl Cpu {
             // DXYN Draw sprite starting at x, y, n specifies how many bytes the sprite is
             // Starting at memory location of self.i
             0xD000 => {
-                let n = self.opcode & 0x000F; // Sprite height
+                let n = (self.opcode & 0x000F) as usize; // Sprite height
 
                 // Let sprite width be 16 (for extended drawing mode)
                 let extended = self.display_mode == DisplayMode::Extended;
 
-                let w = if n == 0 {16} else {8};
-                let h = if n == 0 && extended {16} else {n};
+                let w = if n == 0 && extended { 16 } else { 8 } as usize;
+                let h = if n == 0 && extended { 16 } else { n } as usize;
 
                 let sprite_x = self.v[x] as usize;
                 let sprite_y = self.v[y] as usize;
@@ -491,22 +476,17 @@ impl Cpu {
                 // Set collision flag
                 self.v[0xF] = 0;
 
-                // Pixels can either be on or off
-                let mut flipped = false;
-
                 for j in 0..h {
                     let row = self.memory[(self.i as usize + j as usize)] as u16;
 
                     // TODO: 16x16 sprites are only rendered in half for some reason
                     for i in 0..w {
-                        let xi = ((sprite_x + i as usize) % WIDTH) as usize;
-                        let yj = ((sprite_y + j as usize) % HEIGHT) as usize;
+                        let xi = (sprite_x + i) % WIDTH;
+                        let yj = (sprite_y + j) % HEIGHT;
 
                         if row & 0x80 >> i != 0 {
-
                             // Check if any pixel has changed from value 1 to 0
-                            flipped |= self.pixels[yj % HEIGHT][xi % WIDTH] as bool;
-                            self.v[0xF] = flipped as u8;
+                            self.v[0xF] |= self.pixels[yj % HEIGHT][xi % WIDTH] as u8;
                             self.pixels[yj][xi] ^= true;
                         }
                     }
@@ -515,13 +495,11 @@ impl Cpu {
                 // In Extended mode draw pixels at 1:1 scale. Whereas in normal mode upscale
                 if self.display_mode == DisplayMode::Extended {
                     display.draw(&self.pixels, 10, 10);
-
                 } else {
                     display.draw(&self.pixels, 20, 20);
                 }
 
                 self.draw_flag = true;
-
                 self.pc += 2;
             }
 
@@ -532,7 +510,6 @@ impl Cpu {
                     0x009E => {
                         if self.keypad[self.v[x] as usize] != 0 {
                             self.pc += 4;
-
                         } else {
                             self.pc += 2;
                         }
@@ -542,7 +519,6 @@ impl Cpu {
                     0x00A1 => {
                         if self.keypad[self.v[x] as usize] != 1 {
                             self.pc += 4;
-
                         } else {
                             self.pc += 2;
                         }
@@ -590,7 +566,6 @@ impl Cpu {
                     0x001E => {
                         self.i += self.v[x] as u16;
                         self.v[0xF] = (self.i > 0xFFF) as u8;
-
                         self.pc += 2;
                     }
 
@@ -598,17 +573,14 @@ impl Cpu {
                     // Chars 0-F are represented by a 4x5 font Each char contains 5 elements
                     // Create 0x5 font accessible in memory
                     0x0029 => {
-
-                        self.i = (self.v[x] as usize * 5) as u16;
-
+                        self.i = (self.v[x] * 0x5) as u16;
                         // if self.mode.debug { println!("At FX29. Vx: {}, I:{}", self.v[x], self.i); }
                         self.pc += 2;
-                },
+                    }
 
                     // FX30 SCHIP Set I to the location of the sprite (10 byte) for digit in VX
                     0x0030 => {
-                        self.i = (self.v[x] as usize * 10) as u16;
-
+                        self.i = (self.v[x] * 10 + 80) as u16;
                         // if self.mode.debug { println!("At FX30. Vx: {}, I:{}", self.v[x], self.i); }
 
                         self.pc += 2;
@@ -625,7 +597,8 @@ impl Cpu {
                         self.memory[i + 2] = self.v[x] % 10;
 
                         if self.mode.debug {
-                            println!(" BCD: Hundreds:{}, Tens:{}, Ones:{}", self.memory[i], self.memory[i + 1], self.memory[i + 2]); }
+                            println!(" BCD: Hundreds:{}, Tens:{}, Ones:{}", self.memory[i], self.memory[i + 1], self.memory[i + 2]);
+                        }
 
 
                         self.pc += 2;
@@ -633,26 +606,18 @@ impl Cpu {
 
                     // FX55 Stores V0 to VX in memory starting at I
                     0x0055 => {
-                        let i = self.i as usize;
 
                         for index in 0..(x + 1) {
-                            self.memory[index + i] = self.v[index];
+                            self.memory[index + self.i as usize] = self.v[index];
                         }
-
                         self.pc += 2;
                     }
 
                     // FX65 Fills V0 to VX with values from memory starting at I
                     0x0065 => {
-                        // Problem with Fx65 instruction.
-                        // Can't load zeroes from memory to registers
-                        // SC_Test Error: 0
-                        let i = self.i as usize;
-
                         for index in 0..(x + 1) {
-                            self.v[index] = self.memory[(i + index)];
+                            self.v[index] = self.memory[(self.i as usize + index)];
                         }
-
                         self.pc += 2;
                     }
 
