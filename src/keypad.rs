@@ -1,12 +1,12 @@
 extern crate sdl2;
 
 use sdl2::event::Event;
+use sdl2::keyboard::{KeyboardState, Keycode, Scancode};
 use sdl2::EventPump;
 use sdl2::Sdl;
-use sdl2::keyboard::{KeyboardState, Keycode, Scancode};
 
 pub struct Keypad {
-    pump: EventPump
+    pump: EventPump,
 }
 
 pub enum State {
@@ -29,8 +29,8 @@ impl Keypad {
     pub fn key_press(&mut self, key: &mut [u8; 16]) -> State {
         for event in self.pump.poll_iter() {
             return match event {
-                Event::Quit { .. } |
-                Event::KeyDown { keycode: Some(Keycode::X), .. } => State::Exit,
+                Event::Quit { .. } | Event::KeyDown {
+                    keycode: Some(Keycode::X), .. } => State::Exit,
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => State::Exit,
                 Event::KeyDown { keycode: Some(Keycode::PageUp), .. } => State::Increase,
                 Event::KeyDown { keycode: Some(Keycode::PageDown), .. } => State::Decrease,

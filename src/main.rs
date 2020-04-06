@@ -1,5 +1,5 @@
-extern crate sdl2;
 extern crate rand;
+extern crate sdl2;
 
 use std::env;
 
@@ -50,7 +50,9 @@ fn main() {
                 cpu.speed = cpu.speed.wrapping_sub(1);
                 println!("Speed: {}", cpu.speed);
             }
-            keypad::State::Reset => { cpu.reset(); }
+            keypad::State::Reset => {
+                cpu.reset();
+            }
         }
         // Execute & decode opcodes 2 times for every time we loop
         cpu.step(cpu.speed, &mut display);
